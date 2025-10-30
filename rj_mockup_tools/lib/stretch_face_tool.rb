@@ -239,9 +239,11 @@ module Rjv
         @reference_center = nil
         @influence_bb = nil
         @influence_area_points = nil
+        @hovered_face = nil
+        @hovered_transformation = nil
         @stretch_data = { entities_to_move: [], vertices_to_stretch: [] }
         @stretch_vector = Geom::Vector3d.new(0,0,0)
-        
+
         Sketchup.set_status_text("1. Clique em uma FACE para definir o PLANO de referência (ESC para sair)")
         view.invalidate
         puts "Pronto para novo stretch!"
@@ -860,18 +862,21 @@ module Rjv
 
       def draw_aligned_face_outline(view)
         return unless @hovered_face && @hovered_transformation
-        
+
+        # Verifica se a face ainda é válida (não foi deletada)
+        return if @hovered_face.deleted?
+
         # Desenha a face selecionada com cor especial para mostrar alinhamento
         view.line_stipple = "-"
         view.line_width = 3
         view.drawing_color = "Cyan"
-        
+
         @hovered_face.loops.each do |loop|
           local_points = loop.vertices.map(&:position)
           world_points = local_points.map { |point| point.transform(@hovered_transformation) }
           view.draw(GL_LINE_LOOP, world_points)
         end
-        
+
         # Desenha preenchimento ciano transparente
         if @hovered_face.loops.first
           local_points = @hovered_face.loops.first.vertices.map(&:position)
@@ -879,6 +884,9 @@ module Rjv
           view.drawing_color = [0, 255, 255, 60]
           view.draw(GL_POLYGON, world_points)
         end
+      rescue => e
+        # Se houver erro ao acessar a face (deletada durante operação), ignora silenciosamente
+        puts "Face não disponível para desenho: #{e.message}"
       end
 
       def draw_depth_feedback(view)
