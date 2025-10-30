@@ -10,10 +10,60 @@ module Rjv
 
       TOLERANCE = 1e-4 unless defined?(self::TOLERANCE)
 
-      # --- PropertyManager e open_property_editor ---
-      class PropertyManager; attr_reader :properties; PROPERTIES_JSON_PATH = File.join(Rjv::MockupTools::PLUGIN_ROOT_DIR, 'data', 'properties.json'); def initialize; data_dir = File.dirname(PROPERTIES_JSON_PATH); Dir.mkdir(data_dir) unless Dir.exist?(data_dir); @properties = load_properties; end; def load_properties; if File.exist?(PROPERTIES_JSON_PATH); begin; JSON.parse(File.read(PROPERTIES_JSON_PATH), symbolize_names: true); rescue JSON::ParserError => e; puts "Erro ao carregar properties.json: #{e.message}."; { types: [], materials: [] }; end; else { types: [], materials: [] }; end; end; def update_properties(new_data); @properties = new_data; save_properties; UI.messagebox("Configurações salvas.\nReinicie o SketchUp para atualizar as barras de ferramentas."); end; private; def save_properties; begin; File.write(PROPERTIES_JSON_PATH, JSON.pretty_generate(@properties)); rescue => e; UI.messagebox("Erro ao salvar propriedades: #{e.message}"); puts "Erro save_properties: #{e.message}"; end; end; end
+      # --- PropertyManager ---
+      # Gerencia as propriedades de materiais do plugin
+      class PropertyManager
+        attr_reader :properties
+
+        PROPERTIES_JSON_PATH = File.join(
+          Rjv::MockupTools::PLUGIN_ROOT_DIR,
+          'data',
+          'properties.json'
+        )
+
+        def initialize
+          data_dir = File.dirname(PROPERTIES_JSON_PATH)
+          Dir.mkdir(data_dir) unless Dir.exist?(data_dir)
+          @properties = load_properties
+        end
+
+        def load_properties
+          if File.exist?(PROPERTIES_JSON_PATH)
+            begin
+              JSON.parse(File.read(PROPERTIES_JSON_PATH), symbolize_names: true)
+            rescue JSON::ParserError => e
+              puts "Erro ao carregar properties.json: #{e.message}"
+              UI.messagebox("AVISO: Erro ao carregar properties.json.\nUsando configuração padrão.")
+              { types: [], materials: [] }
+            end
+          else
+            puts "AVISO: properties.json não encontrado. Usando configuração padrão."
+            { types: [], materials: [] }
+          end
+        end
+
+        def update_properties(new_data)
+          @properties = new_data
+          save_properties
+          UI.messagebox("Configurações salvas.\nReinicie o SketchUp para atualizar as barras de ferramentas.")
+        end
+
+        private
+
+        def save_properties
+          begin
+            File.write(PROPERTIES_JSON_PATH, JSON.pretty_generate(@properties))
+          rescue => e
+            UI.messagebox("Erro ao salvar propriedades: #{e.message}")
+            puts "Erro save_properties: #{e.message}"
+          end
+        end
+      end
       @property_manager_instance_ms = nil
-      def self.property_manager; @property_manager_instance_ms ||= PropertyManager.new; end
+
+      def self.property_manager
+        @property_manager_instance_ms ||= PropertyManager.new
+      end
       def self.open_property_editor; dialog_style = UI::HtmlDialog::STYLE_DIALOG; if Sketchup.version.to_i >= 17; begin; UI::HtmlDialog.const_get('STYLE_PALETTE'); dialog_style = UI::HtmlDialog::STYLE_PALETTE; rescue NameError; begin; UI::HtmlDialog.const_get('STYLE_WINDOW'); dialog_style = UI::HtmlDialog::STYLE_WINDOW; rescue NameError; dialog_style = UI::HtmlDialog::STYLE_DIALOG; end; end; end; dialog_options = {dialog_title: "RJV: Gerenciador de Materiais", preferences_key: "RjvMockupTools_MaterialManagerDialog", scrollable: false, resizable: true, width: 1000, height: 700, style: UI::HtmlDialog::STYLE_DIALOG}; dialog = UI::HtmlDialog.new(dialog_options); html_path = File.join(Rjv::MockupTools::PLUGIN_ROOT_DIR, 'html', 'property_editor.html'); dialog.set_file(html_path); dialog.set_on_closed {dialog = nil}; dialog.add_action_callback("load_data") { |_ctx| dialog.execute_script("populateData(#{self.property_manager.properties.to_json})"); true }; dialog.add_action_callback("save_icon") { |_ctx, data_json| item = JSON.parse(data_json, symbolize_names: true); save_generated_icon(item); true }; dialog.add_action_callback("cleanup_invalid_icons") { |_ctx| cleanup_invalid_icons; true }; dialog.add_action_callback("save_data") { |_ctx, data_json| updated_properties = JSON.parse(data_json, symbolize_names: true); self.property_manager.update_properties(updated_properties); true }; dialog.add_action_callback("export_data") { |_ctx| fp = UI.savepanel("Exportar JSON", Rjv::MockupTools::PLUGIN_ROOT_DIR, "rjv_materiais.json"); if fp; File.write(fp, JSON.pretty_generate(self.property_manager.properties)); UI.messagebox("Exportado: #{File.basename(fp)}"); end; true }; dialog.add_action_callback("import_data") { |_ctx| fp = UI.openpanel("Importar JSON", Rjv::MockupTools::PLUGIN_ROOT_DIR, "Arquivos JSON|*.json||"); if fp && File.exist?(fp); begin; imported = JSON.parse(File.read(fp), symbolize_names: true); if imported.is_a?(Hash) && [:types,:materials].all?{|k|imported.key?(k)}; self.property_manager.update_properties(imported); dialog.execute_script("populateData(#{self.property_manager.properties.to_json})"); UI.messagebox("Dados importados! Reinicie o SketchUp para atualizar toolbars."); else UI.messagebox("Erro: Estrutura JSON inválida."); end; rescue JSON::ParserError => e; UI.messagebox("Erro JSON: #{e.message}"); end; end; true }; dialog.add_action_callback("get_icons_list") { |_ctx| icons = get_generated_icons_list; dialog.execute_script("populateIconsList(#{icons.to_json})"); true }; dialog.add_action_callback("delete_icons") { |_ctx, icons_json| icons_arr = JSON.parse(icons_json); success = delete_generated_icons(icons_arr); dialog.execute_script("confirmIconsDeleted(#{success})"); true }; dialog.add_action_callback("get_sketchup_materials") do |_ctx|; materials = Sketchup.active_model.materials.map(&:name).uniq.sort; dialog.execute_script("populateSketchupMaterials(#{materials.to_json})"); true; end; dialog.show; end
       ICONS_SUBFOLDER = "material_config_icons"; def self.get_icons_base_path; File.join(Rjv::MockupTools::PLUGIN_ROOT_DIR, "icons", ICONS_SUBFOLDER); end; def self.save_generated_icon(item_data, item_type_hint_ignored = nil); begin; base_name = item_data[:name].to_s.gsub(/[^a-zA-Z0-9_.-]/,'_').gsub(/\s+/,'_'); file_name = "#{base_name}.png"; icons_path = get_icons_base_path; Dir.mkdir(icons_path) unless Dir.exist?(icons_path); file_path = File.join(icons_path, file_name); data_part = item_data[:icon_data].split(',')[1]; return false unless data_part; File.open(file_path,"wb"){|f|f.write(Base64.decode64(data_part))}; true; rescue => e; UI.messagebox("Erro salvar ícone '#{item_data[:name]}': #{e.message}"); false; end; end; def self.get_generated_icons_list; path = get_icons_base_path; return [] unless Dir.exist?(path); Dir.entries(path).select{|f|File.file?(File.join(path,f)) && f.downcase.end_with?('.png')}; end; def self.delete_generated_icons(icons_arr); path = get_icons_base_path; return false unless Dir.exist?(path); deleted = 0; icons_arr.each{|name| fp = File.join(path,name); if File.exist?(fp);begin File.delete(fp);deleted+=1;rescue;end;end}; if deleted>0; puts "#{deleted} ícone(s) excedente(s) excluído(s).";end; return deleted>0; end; def self.generate_icon_path_for_toolbar(item_name); normalized = item_name.to_s.gsub(/[^a-zA-Z0-9_.-]/,'_').gsub(/\s+/,'_'); File.join(get_icons_base_path, "#{normalized}.png"); end
       

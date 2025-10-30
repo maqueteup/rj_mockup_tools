@@ -4,10 +4,10 @@
 module Rjv
   module MockupTools
 
-    PLUGIN_NAME = 'Mockup Tools RJV'.freeze
-    PLUGIN_VERSION = '2.1.7'.freeze # ✅ Versão otimizada
-
     PLUGIN_ROOT_DIR = File.dirname(__FILE__) unless defined?(Rjv::MockupTools::PLUGIN_ROOT_DIR)
+
+    # Carrega informações de versão centralizada
+    require_relative 'lib/version'
     
     # ===== 🚀 LAZY LOADING - Carrega apenas o essencial =====
     # Arquivos críticos que precisam estar carregados no início:
@@ -466,8 +466,8 @@ module Rjv
       Sketchup.active_model.selection.add_observer(AppSelectionObserver.new)
       Rjv::MockupTools::ToolbarSystem.initialize_toolbars
       Menus.create_ui
-      
-      puts "🚀 #{PLUGIN_NAME} v#{PLUGIN_VERSION} inicializado (LAZY LOADING ativado)!"
+
+      puts "🚀 #{full_version_string} inicializado (LAZY LOADING ativado)!"
       file_loaded(__FILE__)
     end 
   end 

@@ -82,7 +82,7 @@
     {
       "type": "Melamina",
       "name": "Melamina 2.8mm",
-      "thickness": 0.27999999999999997,
+      "thickness": 0.28,
       "color": "#7c6419",
       "finishes": [
 
@@ -186,7 +186,7 @@
     {
       "type": "Fórmica",
       "name": "Fórmica 0.7mm",
-      "thickness": 0.06999999999999999,
+      "thickness": 0.07,
       "color": "#ffcc99",
       "finishes": [
         "Madeirado"
@@ -208,7 +208,7 @@
     {
       "type": "PET",
       "name": "PET 0.7mm",
-      "thickness": 0.06999999999999999,
+      "thickness": 0.07,
       "color": "#660833",
       "finishes": [
 

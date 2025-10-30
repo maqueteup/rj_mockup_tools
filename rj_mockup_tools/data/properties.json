@@ -343,7 +343,7 @@
     {
       "type": "AMADEIRADO",
       "name": "AMADEIRADO 0.7mm",
-      "thickness": 0.06999999999999999,
+      "thickness": 0.07,
       "boardLength": 600,
       "boardWidth": 250,
       "sketchupMaterial": "",
@@ -373,7 +373,7 @@
     {
       "type": "MDF",
       "name": "MDF 2.8mm - BRANCO",
-      "thickness": 0.27999999999999997,
+      "thickness": 0.28,
       "finish": "BRANCO",
       "boardLength": 1350,
       "boardWidth": 900,
@@ -487,7 +487,7 @@
     {
       "type": "PET",
       "name": "PET 0.7mm - GRAMA",
-      "thickness": 0.06999999999999999,
+      "thickness": 0.07,
       "finish": "GRAMA",
       "boardLength": 850,
       "boardWidth": 600,

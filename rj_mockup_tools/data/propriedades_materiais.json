@@ -84,16 +84,20 @@
       "boardWidth": 900,
       "sketchupMaterial": "",
       "color": "#ffd8cc",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_MDF 2.5mm",
       "active": true
     },
     {
       "type": "Melamina",
       "name": "Melamina 2.8mm",
-      "thickness": 0.27999999999999997,
+      "thickness": 0.28,
       "color": "#7c6419",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_Melamina 2.8mm",
       "active": false,
       "boardLength": 2750,
@@ -104,7 +108,9 @@
       "name": "MDF 3mm",
       "thickness": 0.3,
       "color": "#7c6419",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_MDF 3mm",
       "active": true,
       "boardLength": 2750,
@@ -115,7 +121,9 @@
       "name": "MDF 6mm",
       "thickness": 0.6,
       "color": "#ffd865",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_MDF 6mm",
       "active": true,
       "boardLength": 2750,
@@ -126,7 +134,9 @@
       "name": "MDF 9mm",
       "thickness": 0.9,
       "color": "#006dd3",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_MDF 9mm",
       "active": true,
       "boardLength": 2750,
@@ -168,7 +178,9 @@
       "name": "Acrílico 3mm",
       "thickness": 0.3,
       "color": "#6565ff",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_Acrílico 3mm",
       "active": true,
       "boardLength": 2750,
@@ -179,7 +191,9 @@
       "name": "Acrílico 4mm",
       "thickness": 0.4,
       "color": "#ff6565",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_Acrílico 4mm",
       "active": true,
       "boardLength": 2750,
@@ -190,7 +204,9 @@
       "name": "Acrílico 5mm",
       "thickness": 0.5,
       "color": "#009999",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_Acrílico 5mm",
       "active": true,
       "boardLength": 2750,
@@ -199,7 +215,7 @@
     {
       "type": "Fórmica",
       "name": "Fórmica 0.7mm",
-      "thickness": 0.06999999999999999,
+      "thickness": 0.07,
       "color": "#ffcc99",
       "finishes": [
         "Madeirado"
@@ -225,9 +241,11 @@
     {
       "type": "PET",
       "name": "PET 0.7mm",
-      "thickness": 0.06999999999999999,
+      "thickness": 0.07,
       "color": "#660833",
-      "finishes": [],
+      "finishes": [
+
+      ],
       "layer": "MU_PET 0.7mm",
       "active": true,
       "boardLength": 2750,
