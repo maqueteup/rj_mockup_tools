@@ -350,95 +350,108 @@ module Rjv
       def create_face_aligned_influence_area(direction_normal, depth)
         return nil unless @hovered_face && @hovered_transformation && depth > 0
 
-        # ✅ CRIA SISTEMA DE COORDENADAS LOCAL BASEADO NA FACE
-        # Pega os vértices da face selecionada em coordenadas mundiais
+        # ✅ ABORDAGEM SIMPLES: Usa a face como base e estende na direção da normal
         face_vertices_world = @hovered_face.vertices.map do |vertex|
           vertex.position.transform(@hovered_transformation)
         end
 
-        # Cria transformação para sistema de coordenadas local da face
-        local_transform = create_local_coordinate_system(@reference_center, @reference_normal)
-        local_to_world = local_transform.inverse
-
-        # Transforma todos os pontos relevantes para o sistema local
-        face_vertices_local = face_vertices_world.map { |pt| pt.transform(local_transform) }
-
-        # Projeta pontos da seleção no plano da face e transforma para local
-        selection_points_local = []
+        # Projeta todos os cantos da seleção no plano da face
+        projected_points = []
         if @selection_bb
           8.times do |i|
             corner = @selection_bb.corner(i)
             projected = project_point_to_plane(corner, @reference_center, @reference_normal)
-            selection_points_local << projected.transform(local_transform)
+            projected_points << projected
           end
         end
 
-        # Calcula limites no sistema local (agora x,y são no plano da face, z é perpendicular)
-        all_local_points = face_vertices_local + selection_points_local
+        # Combina vértices da face com pontos projetados da seleção
+        all_points_on_plane = face_vertices_world + projected_points
 
-        min_x = all_local_points.map(&:x).min
-        max_x = all_local_points.map(&:x).max
-        min_y = all_local_points.map(&:y).min
-        max_y = all_local_points.map(&:y).max
+        # Encontra os limites expandidos no plano da face usando a própria geometria
+        bounds = calculate_oriented_bounds(all_points_on_plane, @reference_center, @reference_normal)
 
         # Adiciona margem
         margin = @selection_bb ? @selection_bb.diagonal * 0.1 : 0
-        min_x -= margin
-        max_x += margin
-        min_y -= margin
-        max_y += margin
 
-        # Cria os 8 pontos da caixa alinhada no sistema local
-        # Z=0 é o plano da face, z positivo/negativo é a profundidade
-        z_offset = direction_normal == @reference_normal ? depth : -depth
+        # Cria 4 pontos da base expandida no plano da face
+        base_points = expand_base_rectangle(bounds, margin)
 
-        base_points_local = [
-          Geom::Point3d.new(min_x, min_y, 0),
-          Geom::Point3d.new(max_x, min_y, 0),
-          Geom::Point3d.new(max_x, max_y, 0),
-          Geom::Point3d.new(min_x, max_y, 0)
-        ]
+        # Cria os 8 pontos: 4 na base + 4 estendidos
+        @influence_area_points = []
 
-        extended_points_local = [
-          Geom::Point3d.new(min_x, min_y, z_offset),
-          Geom::Point3d.new(max_x, min_y, z_offset),
-          Geom::Point3d.new(max_x, max_y, z_offset),
-          Geom::Point3d.new(min_x, max_y, z_offset)
-        ]
+        # Adiciona os 4 pontos da base
+        base_points.each { |pt| @influence_area_points << pt }
 
-        # Transforma todos os pontos de volta para coordenadas globais
-        @influence_area_points = (base_points_local + extended_points_local).map do |pt|
-          pt.transform(local_to_world)
+        # Adiciona os 4 pontos estendidos na direção especificada
+        base_points.each do |pt|
+          extended_pt = pt.offset(direction_normal, depth)
+          @influence_area_points << extended_pt
         end
 
-        puts "✅ Área criada ALINHADA à face selecionada (8 pontos calculados)"
+        puts "✅ Área criada ALINHADA à face selecionada (#{@influence_area_points.length} pontos)"
 
-        # Cria BoundingBox simples para compatibilidade com código existente
+        # Cria BoundingBox para compatibilidade
         influence_bb = Geom::BoundingBox.new
         @influence_area_points.each { |pt| influence_bb.add(pt) }
         influence_bb
       end
 
-      # Cria uma transformação que converte coordenadas globais para um sistema local
-      # onde o plano XY é o plano da face e Z é perpendicular à face
-      def create_local_coordinate_system(origin, normal)
-        # Z local é a normal da face
-        z_axis = normal.normalize
+      # Calcula limites no plano orientado da face
+      def calculate_oriented_bounds(points, center, normal)
+        return nil if points.empty?
 
-        # X local é qualquer vetor perpendicular à normal
-        # Escolhemos um vetor baseado em qual componente da normal é menor
-        if z_axis.z.abs < 0.9
-          x_axis = z_axis.cross(Z_AXIS).normalize
+        # Cria dois vetores perpendiculares no plano da face
+        # Estes serão nossos "eixos X e Y" locais
+        if normal.z.abs < 0.9
+          u_axis = normal.cross(Z_AXIS).normalize
         else
-          x_axis = z_axis.cross(X_AXIS).normalize
+          u_axis = normal.cross(X_AXIS).normalize
+        end
+        v_axis = normal.cross(u_axis).normalize
+
+        # Projeta todos os pontos nos eixos U e V
+        u_values = []
+        v_values = []
+
+        points.each do |pt|
+          vec = center.vector_to(pt)
+          u_values << vec.dot(u_axis)
+          v_values << vec.dot(v_axis)
         end
 
-        # Y local é perpendicular a ambos X e Z
-        y_axis = z_axis.cross(x_axis).normalize
+        # Retorna os limites e os eixos
+        {
+          u_min: u_values.min,
+          u_max: u_values.max,
+          v_min: v_values.min,
+          v_max: v_values.max,
+          u_axis: u_axis,
+          v_axis: v_axis,
+          center: center
+        }
+      end
 
-        # Cria a transformação
-        # Os eixos formam a matriz de rotação, origin é a translação
-        Geom::Transformation.axes(origin, x_axis, y_axis, z_axis)
+      # Cria um retângulo expandido no plano da face
+      def expand_base_rectangle(bounds, margin)
+        return [] unless bounds
+
+        u_min = bounds[:u_min] - margin
+        u_max = bounds[:u_max] + margin
+        v_min = bounds[:v_min] - margin
+        v_max = bounds[:v_max] + margin
+
+        center = bounds[:center]
+        u_axis = bounds[:u_axis]
+        v_axis = bounds[:v_axis]
+
+        # Cria os 4 cantos do retângulo
+        [
+          center.offset(u_axis, u_min).offset(v_axis, v_min),
+          center.offset(u_axis, u_max).offset(v_axis, v_min),
+          center.offset(u_axis, u_max).offset(v_axis, v_max),
+          center.offset(u_axis, u_min).offset(v_axis, v_max)
+        ]
       end
 
       def calculate_face_bounds(face_vertices)
