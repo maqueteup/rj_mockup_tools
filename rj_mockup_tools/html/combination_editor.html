@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciador de Combinações</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .combination-item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .buttons { margin: 10px 0; }
+        button { padding: 8px 16px; margin: 5px; }
+        .active { background-color: #e8f5e8; }
+        input, select { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Gerenciador de Combinações Material + Acabamento</h1>
+    
+    <div class="buttons">
+        <button onclick="autoGenerate()">Gerar Automaticamente</button>
+        <button onclick="saveData()">Salvar</button>
+    </div>
+    
+    <div id="combinations-list">
+        <!-- Combinações serão inseridas aqui -->
+    </div>
+    
+    <script>
+        let currentData = {};
+        
+        function populateData(data) {
+            currentData = data;
+            renderCombinations();
+        }
+        
+        function renderCombinations() {
+            const container = document.getElementById('combinations-list');
+            container.innerHTML = '';
+            
+            if (!currentData.combinations || !currentData.combinations.combinations) {
+                container.innerHTML = '<p>Nenhuma combinação definida. Use "Gerar Automaticamente".</p>';
+                return;
+            }
+            
+            currentData.combinations.combinations.forEach((combo, index) => {
+                const div = document.createElement('div');
+                div.className = 'combination-item' + (combo.active ? ' active' : '');
+                div.innerHTML = `
+                    <h3>${combo.name}</h3>
+                    <p>Material: ${combo.material_name}</p>
+                    <p>Acabamento: ${combo.finish_name}</p>
+                    <label><input type="checkbox" ${combo.active ? 'checked' : ''} onchange="toggleActive(${index})"> Ativo</label>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function autoGenerate() {
+            sketchup.auto_generate();
+        }
+        
+        function populateSuggestions(suggestions) {
+            if (!currentData.combinations) {
+                currentData.combinations = { combinations: [] };
+            }
+            currentData.combinations.combinations = suggestions;
+            renderCombinations();
+        }
+        
+        function toggleActive(index) {
+            currentData.combinations.combinations[index].active = 
+                !currentData.combinations.combinations[index].active;
+        }
+        
+        function saveData() {
+            sketchup.save_data(JSON.stringify(currentData.combinations));
+        }
+        
+        // Carrega dados iniciais
+        sketchup.load_data();
+    </script>
+</body>
+</html>

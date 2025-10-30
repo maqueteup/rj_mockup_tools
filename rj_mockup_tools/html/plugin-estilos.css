@@ -1,0 +1,479 @@
+/* plugin-estilos.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+:root {
+    --primary-color: #2a7a8c;
+    --primary-light: #46bbd1;
+    --primary-light-rgb: 70, 187, 209; /* Para usar com rgba() */
+    --secondary-color: #e74c3c; /* Vermelho/Laranja - Usar para ações de destaque ou secundárias */
+    --accent-color: #f39c12;    /* Amarelo/Laranja - Para destaques, badges */
+    --danger-color: #c0392b;     /* Vermelho escuro - Para erros, exclusões */
+    --success-color: #28a745;   /* Verde - Para sucesso */
+
+    --text-color: #2c3e50;       /* Cor principal do texto */
+    --light-text: #7f8c8d;     /* Cor de texto mais clara, para subtextos, placeholders */
+    --background: #ecf0f1;       /* Fundo geral da página/dialog */
+    --card-bg: #ffffff;          /* Fundo de containers, painéis */
+    
+    --border-color: #bdc3c7;     /* Cor padrão de bordas */
+    --border-radius: 6px;
+    --shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra mais sutil */
+    --hover-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+body {
+    background-color: var(--background);
+    color: var(--text-color);
+    line-height: 1.4; /* Ajustado para melhor legibilidade */
+    min-height: 100vh;
+    padding: 0.5rem;
+    font-size: 14px; /* Tamanho base da fonte */
+}
+
+/* Container principal */
+.container {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1rem;
+    width: 100%;
+    max-width: 520px; /* Aumentado um pouco, pode ser ajustado ou removido para containers maiores */
+    margin: 0.5rem auto; /* Adiciona margem em cima/baixo e centraliza */
+}
+/* Variações de container para diálogos maiores */
+.container-md { max-width: 768px; }
+.container-lg { max-width: 992px; }
+
+
+/* Títulos */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-color);
+    font-weight: 600;
+    margin-bottom: 0.75rem; /* Margem inferior padrão para títulos */
+    line-height: 1.2;
+}
+
+h1 { /* Título principal do diálogo/página */
+    color: var(--primary-color);
+    font-size: 1.5rem;  /* ~21px */
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+h2 { /* Títulos de seção */
+    color: var(--primary-color);
+    font-size: 1.2rem; /* ~17px */
+    margin-top: 1.25rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+h3, .panel-title { /* Subtítulos ou títulos de painel */
+    color: var(--primary-color);
+    font-size: 1.05rem; /* ~15px */
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.6rem;
+}
+h3.panel-title { /* Para manter consistência com o original se usado */
+    margin-top: 0;
+}
+
+/* Parágrafos e Texto Geral */
+p {
+    margin-bottom: 0.75rem;
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+  color: var(--primary-light);
+}
+
+/* Grupos de Formulário */
+.form-group {
+    margin-bottom: 1rem; /* 16px */
+}
+
+label {
+    display: block;
+    margin-bottom: 0.4rem; /* 6px */
+    font-weight: 500; /* Um pouco menos pesado que 'bold' */
+    color: var(--text-color);
+    font-size: 0.9rem; /* ~12.6px */
+}
+
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+textarea,
+select {
+    width: 100%;
+    padding: 0.5rem 0.6rem; /* 8px 10px */
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+    background-color: #fdfdfd;
+    color: var(--text-color);
+    font-size: 0.9rem; /* ~12.6px */
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(var(--primary-light-rgb), 0.25);
+    outline: none;
+}
+textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Inputs com sufixo/prefixo (ex: "mm") */
+.input-group {
+    display: flex;
+    align-items: center;
+}
+.input-group input {
+    flex-grow: 1;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.input-group .input-group-append {
+    padding: 0.5rem 0.6rem;
+    background-color: #e9ecef;
+    border: 1px solid var(--border-color);
+    border-left: none;
+    border-top-right-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+    font-size: 0.9rem;
+    color: var(--light-text);
+}
+
+
+/* Grupos Inline (campos lado a lado) */
+.inline-group {
+    display: flex;
+    gap: 1rem; /* 16px */
+    align-items: flex-end; /* Alinha pela base dos inputs */
+    flex-wrap: wrap;
+}
+.inline-group .form-group {
+    flex: 1;
+    margin-bottom: 0;
+    min-width: 120px; /* Evita que fiquem muito espremidos */
+}
+/* Para casos específicos como o three-col do rename_dialog */
+.inline-group.three-col .form-group:first-child { flex-basis: 40%; }
+.inline-group.three-col .form-group { flex-basis: 28%; }
+
+
+/* Checkboxes e Radios */
+.checkbox-group, .radio-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* 8px */
+    margin-bottom: 0.75rem; /* 12px */
+}
+.checkbox-group input[type="checkbox"],
+.radio-group input[type="radio"] {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color); /* Usar cor primária para checks */
+}
+.checkbox-group label, .radio-group label {
+    font-weight: normal;
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+/* Painéis / Cards */
+.panel {
+    border: 1px solid #e0e0e0; /* Borda mais sutil */
+    border-radius: var(--border-radius);
+    padding: 1rem; /* 16px */
+    margin-top: 1rem;
+    margin-bottom: 1.25rem; /* 20px */
+    background-color: #f9f9f9;
+}
+
+/* Botões */
+.button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem; /* 12px */
+    margin-top: 1.25rem; /* 20px */
+}
+
+button, .btn {
+    padding: 0.6rem 1rem; /* ~10px 16px */
+    border: 1px solid transparent;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem; /* ~12.6px */
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+    display: inline-block; /* Para <a> tags com classe .btn */
+}
+button:hover, .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--hover-shadow);
+}
+
+button.primary, .btn.primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+button.primary:hover, .btn.primary:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-light);
+}
+
+button.secondary, .btn.secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+}
+button.secondary:hover, .btn.secondary:hover {
+    background-color: #d6301f;
+    border-color: #d6301f;
+}
+
+button.default, .btn.default { /* Botão "outline" ou "padrão" */
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+button.default:hover, .btn.default:hover {
+    background-color: #f1f1f1;
+    border-color: var(--text-color);
+}
+
+/* Textos Informativos / Alertas */
+.info-text {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem; /* ~12px 16px */
+    border-left: 4px solid var(--primary-color);
+    background-color: rgba(var(--primary-light-rgb), 0.1);
+    border-radius: var(--border-radius);
+    color: var(--text-color);
+    font-size: 0.85rem; /* ~12px */
+}
+.info-text.success {
+    border-left-color: var(--success-color);
+    background-color: rgba(40, 167, 69, 0.1);
+}
+.info-text.warning {
+    border-left-color: var(--accent-color);
+    background-color: rgba(243, 156, 18, 0.1);
+}
+.info-text.danger, .info-text.error {
+    border-left-color: var(--danger-color);
+    background-color: rgba(192, 57, 43, 0.1);
+}
+.empty-message { /* Para mensagens como "Nenhum item selecionado" */
+    color: var(--light-text);
+    text-align: center;
+    padding: 1.5rem 1rem;
+    font-size: 0.9rem;
+    background-color: #f9f9f9;
+    border-radius: var(--border-radius);
+    margin-top: 1rem;
+}
+
+
+/* Separadores */
+hr, .section-separator {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1.5rem 0; /* 24px */
+}
+
+/* Tabelas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.85rem; /* ~12px */
+    background-color: var(--card-bg);
+    box-shadow: var(--shadow);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+th, td {
+    padding: 0.6rem 0.75rem; /* ~10px 12px */
+    text-align: left;
+    border-bottom: 1px solid #e9ecef; /* Borda mais sutil entre linhas */
+    vertical-align: middle;
+}
+th {
+    background-color: #f1f3f5; /* Cor de fundo mais clara para cabeçalho */
+    color: var(--text-color);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem; /* ~10.5px */
+    letter-spacing: 0.5px;
+}
+tr:last-child td {
+    border-bottom: none;
+}
+tbody tr:hover {
+    background-color: #f8f9fa;
+}
+td.actions, .table-actions { /* Célula com botões de ação */
+    text-align: right;
+    white-space: nowrap;
+}
+td.actions button, .table-actions button,
+td.actions .btn, .table-actions .btn {
+    padding: 0.3rem 0.6rem; /* ~5px 10px */
+    font-size: 0.8rem; /* ~11px */
+    margin-left: 0.3rem;
+}
+button.edit-action, .btn.edit-action {
+    background-color: var(--accent-color); border-color: var(--accent-color); color: white;
+}
+button.edit-action:hover, .btn.edit-action:hover {
+    background-color: #d88c0a; border-color: #d88c0a;
+}
+button.delete-action, .btn.delete-action {
+    background-color: var(--danger-color); border-color: var(--danger-color); color: white;
+}
+button.delete-action:hover, .btn.delete-action:hover {
+    background-color: #a5281b; border-color: #a5281b;
+}
+/* Estilo para cor de fundo em TD (usado em property_editor) */
+td .color-swatch {
+    display: inline-block;
+    width: 60px;
+    height: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    vertical-align: middle;
+}
+
+
+/* Utilitários */
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+.font-weight-bold { font-weight: bold; }
+.mt-1 { margin-top: 0.5rem; } .mt-2 { margin-top: 1rem; } .mt-3 { margin-top: 1.5rem; }
+.mb-1 { margin-bottom: 0.5rem; } .mb-2 { margin-bottom: 1rem; } .mb-3 { margin-bottom: 1.5rem; }
+/* ... mais utilitários conforme necessário */
+
+
+/* Responsividade */
+@media (max-width: 600px) {
+    body {
+        padding: 0.25rem;
+        font-size: 13px;
+    }
+    .container, .container-md, .container-lg {
+        padding: 0.75rem;
+        margin: 0.25rem auto;
+        max-width: 100%; /* Ocupar toda a largura disponível */
+    }
+    h1 { font-size: 1.3rem; }
+    h2 { font-size: 1.1rem; }
+    h3, .panel-title { font-size: 1rem; }
+
+    .inline-group {
+        flex-direction: column;
+        gap: 0;
+        align-items: stretch;
+    }
+    .inline-group .form-group {
+        min-width: 100%;
+        margin-bottom: 0.75rem;
+    }
+    .button-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    button, .btn {
+        width: 100%;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Tabelas responsivas: modo "card" */
+    table:not(.no-responsive), /* Adicionar classe .no-responsive para tabelas que não devem mudar */
+    table:not(.no-responsive) thead,
+    table:not(.no-responsive) tbody,
+    table:not(.no-responsive) th,
+    table:not(.no-responsive) td,
+    table:not(.no-responsive) tr {
+        display: block;
+    }
+    table:not(.no-responsive) thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    table:not(.no-responsive) tr {
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        margin-bottom: 0.5rem;
+        background-color: var(--card-bg); /* Cada linha vira um card */
+    }
+    table:not(.no-responsive) td {
+        border: none;
+        border-bottom: 1px solid #eee;
+        position: relative;
+        padding-left: 50%;
+        text-align: right;
+        min-height: 2.5em; /* Garante altura mínima para toque e visualização */
+        display: flex; /* Para alinhar o label e o conteúdo */
+        align-items: center;
+        justify-content: space-between;
+    }
+    table:not(.no-responsive) td:before {
+        content: attr(data-label); /* Necessário adicionar data-label="Nome Coluna" nos <td> */
+        position: static; /* Alterado de absolute */
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: 500;
+        text-align: left;
+        color: var(--text-color);
+    }
+    table:not(.no-responsive) td:last-child {
+        border-bottom: 0;
+    }
+    table:not(.no-responsive) td.actions,
+    table:not(.no-responsive) .table-actions {
+        padding-left: 0.75rem; /* Resetar padding */
+        text-align: center;
+    }
+    table:not(.no-responsive) td.actions:before,
+    table:not(.no-responsive) .table-actions:before {
+        content: ""; /* Remover label para célula de ações */
+    }
+    table:not(.no-responsive) td.actions button,
+    table:not(.no-responsive) .table-actions button {
+        width: auto; /* Botões de ação não ocupam 100% */
+        margin: 0.2rem;
+    }
+}
