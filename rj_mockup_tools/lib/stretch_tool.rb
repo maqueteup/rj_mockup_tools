@@ -4,6 +4,11 @@
 module Rjv
   module MockupTools
     class StretchTool
+      # Constantes de vetores de eixo
+      X_AXIS = Geom::Vector3d.new(1, 0, 0).freeze
+      Y_AXIS = Geom::Vector3d.new(0, 1, 0).freeze
+      Z_AXIS = Geom::Vector3d.new(0, 0, 1).freeze
+
       def initialize
         @model = Sketchup.active_model
         reset_tool

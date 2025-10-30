@@ -8,12 +8,6 @@ module Rjv
         extensions_menu = UI.menu("Extensions")
         mockup_submenu = extensions_menu.add_submenu(PLUGIN_NAME)
 
-        # ✅ Seletor (sempre disponível, carrega MaterialSystem sob demanda)
-        mockup_submenu.add_item("Seletor de Ferramentas") { 
-          Rjv::MockupTools.open_selector_dialog 
-        }
-        mockup_submenu.add_separator
-
         # ===== MODELAGEM =====
         model_submenu = mockup_submenu.add_submenu("Modelagem")
         
