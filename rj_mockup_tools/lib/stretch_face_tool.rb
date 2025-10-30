@@ -46,6 +46,7 @@ module Rjv
           @reference_normal = nil
           @reference_center = nil
           @influence_bb = nil
+          @influence_area_points = nil
           Sketchup.set_status_text("1. Clique em uma FACE para definir o PLANO de referência")
         else
           # Se está no início, sai da ferramenta
@@ -77,7 +78,8 @@ module Rjv
         @bilateral_mode = false
         @bidirectional_mode = false
         @influence_bb = nil  # Área única que pode ser para frente ou trás
-        
+        @influence_area_points = nil  # Pontos da caixa alinhada à face
+
         Sketchup.set_status_text("1. Clique em uma FACE para definir o PLANO de referência")
       end
       
@@ -236,6 +238,7 @@ module Rjv
         @reference_normal = nil
         @reference_center = nil
         @influence_bb = nil
+        @influence_area_points = nil
         @stretch_data = { entities_to_move: [], vertices_to_stretch: [] }
         @stretch_vector = Geom::Vector3d.new(0,0,0)
         
@@ -346,26 +349,96 @@ module Rjv
 
       def create_face_aligned_influence_area(direction_normal, depth)
         return nil unless @hovered_face && @hovered_transformation && depth > 0
-        
-        # ✅ USA A PRÓPRIA FACE COMO BASE DO ALINHAMENTO
-        influence_bb = Geom::BoundingBox.new
-        
+
+        # ✅ CRIA SISTEMA DE COORDENADAS LOCAL BASEADO NA FACE
         # Pega os vértices da face selecionada em coordenadas mundiais
         face_vertices_world = @hovered_face.vertices.map do |vertex|
           vertex.position.transform(@hovered_transformation)
         end
-        
-        # Calcula a bounding box da face no seu próprio plano
-        face_bounds = calculate_face_bounds(face_vertices_world)
-        
-        # Expande a área para cobrir toda a seleção no plano da face
-        expanded_bounds = expand_bounds_to_cover_selection(face_bounds, face_vertices_world)
-        
-        # Cria área de influência baseada na face expandida
-        create_expanded_face_area(expanded_bounds, direction_normal, depth, influence_bb)
-        
-        puts "Área criada alinhada à face selecionada"
+
+        # Cria transformação para sistema de coordenadas local da face
+        local_transform = create_local_coordinate_system(@reference_center, @reference_normal)
+        local_to_world = local_transform.inverse
+
+        # Transforma todos os pontos relevantes para o sistema local
+        face_vertices_local = face_vertices_world.map { |pt| pt.transform(local_transform) }
+
+        # Projeta pontos da seleção no plano da face e transforma para local
+        selection_points_local = []
+        if @selection_bb
+          8.times do |i|
+            corner = @selection_bb.corner(i)
+            projected = project_point_to_plane(corner, @reference_center, @reference_normal)
+            selection_points_local << projected.transform(local_transform)
+          end
+        end
+
+        # Calcula limites no sistema local (agora x,y são no plano da face, z é perpendicular)
+        all_local_points = face_vertices_local + selection_points_local
+
+        min_x = all_local_points.map(&:x).min
+        max_x = all_local_points.map(&:x).max
+        min_y = all_local_points.map(&:y).min
+        max_y = all_local_points.map(&:y).max
+
+        # Adiciona margem
+        margin = @selection_bb ? @selection_bb.diagonal * 0.1 : 0
+        min_x -= margin
+        max_x += margin
+        min_y -= margin
+        max_y += margin
+
+        # Cria os 8 pontos da caixa alinhada no sistema local
+        # Z=0 é o plano da face, z positivo/negativo é a profundidade
+        z_offset = direction_normal == @reference_normal ? depth : -depth
+
+        base_points_local = [
+          Geom::Point3d.new(min_x, min_y, 0),
+          Geom::Point3d.new(max_x, min_y, 0),
+          Geom::Point3d.new(max_x, max_y, 0),
+          Geom::Point3d.new(min_x, max_y, 0)
+        ]
+
+        extended_points_local = [
+          Geom::Point3d.new(min_x, min_y, z_offset),
+          Geom::Point3d.new(max_x, min_y, z_offset),
+          Geom::Point3d.new(max_x, max_y, z_offset),
+          Geom::Point3d.new(min_x, max_y, z_offset)
+        ]
+
+        # Transforma todos os pontos de volta para coordenadas globais
+        @influence_area_points = (base_points_local + extended_points_local).map do |pt|
+          pt.transform(local_to_world)
+        end
+
+        puts "✅ Área criada ALINHADA à face selecionada (8 pontos calculados)"
+
+        # Cria BoundingBox simples para compatibilidade com código existente
+        influence_bb = Geom::BoundingBox.new
+        @influence_area_points.each { |pt| influence_bb.add(pt) }
         influence_bb
+      end
+
+      # Cria uma transformação que converte coordenadas globais para um sistema local
+      # onde o plano XY é o plano da face e Z é perpendicular à face
+      def create_local_coordinate_system(origin, normal)
+        # Z local é a normal da face
+        z_axis = normal.normalize
+
+        # X local é qualquer vetor perpendicular à normal
+        # Escolhemos um vetor baseado em qual componente da normal é menor
+        if z_axis.z.abs < 0.9
+          x_axis = z_axis.cross(Z_AXIS).normalize
+        else
+          x_axis = z_axis.cross(X_AXIS).normalize
+        end
+
+        # Y local é perpendicular a ambos X e Z
+        y_axis = z_axis.cross(x_axis).normalize
+
+        # Cria a transformação
+        # Os eixos formam a matriz de rotação, origin é a translação
+        Geom::Transformation.axes(origin, x_axis, y_axis, z_axis)
       end
 
       def calculate_face_bounds(face_vertices)
@@ -757,9 +830,14 @@ module Rjv
           else
             [255, 165, 0, 60]  # Laranja para trás
           end
-          
-          draw_bb(view, @influence_bb, color)
-          
+
+          # Usa pontos alinhados à face se disponíveis, senão usa BoundingBox padrão
+          if @influence_area_points && @influence_area_points.length == 8
+            draw_aligned_box(view, @influence_area_points, color)
+          else
+            draw_bb(view, @influence_bb, color)
+          end
+
           # ✅ DESENHA CONTORNO DA FACE BASE PARA MOSTRAR ALINHAMENTO
           if @hovered_face && @hovered_transformation
             draw_aligned_face_outline(view)
@@ -899,13 +977,64 @@ module Rjv
         ]
       end
 
+      # Desenha uma caixa alinhada à face usando 8 pontos personalizados
+      # Points 0-3: base (no plano da face)
+      # Points 4-7: topo (estendidos na direção da normal)
+      def draw_aligned_box(view, points, color)
+        return unless points && points.length == 8
+
+        view.drawing_color = color
+
+        # Desenha as 6 faces da caixa como quads
+        view.draw(GL_QUADS, [
+          # Base (pontos 0,1,2,3)
+          points[0], points[1], points[2], points[3],
+          # Topo (pontos 4,5,6,7)
+          points[4], points[5], points[6], points[7],
+          # Laterais
+          points[0], points[1], points[5], points[4],
+          points[1], points[2], points[6], points[5],
+          points[2], points[3], points[7], points[6],
+          points[3], points[0], points[4], points[7]
+        ])
+
+        # Desenha as arestas
+        view.line_stipple = ""
+        view.line_width = 1
+        view.drawing_color = [color[0], color[1], color[2], 255]
+
+        # Arestas da base
+        view.draw_lines(
+          points[0], points[1],
+          points[1], points[2],
+          points[2], points[3],
+          points[3], points[0]
+        )
+
+        # Arestas do topo
+        view.draw_lines(
+          points[4], points[5],
+          points[5], points[6],
+          points[6], points[7],
+          points[7], points[4]
+        )
+
+        # Arestas verticais
+        view.draw_lines(
+          points[0], points[4],
+          points[1], points[5],
+          points[2], points[6],
+          points[3], points[7]
+        )
+      end
+
       def draw_bb(view, bb, color)
         return unless bb && bb.valid?
-        
+
         view.drawing_color = color
         points = []
         8.times { |i| points << bb.corner(i) }
-        
+
         view.draw(GL_QUADS, [
           points[0], points[1], points[3], points[2],
           points[4], points[5], points[7], points[6],
@@ -914,7 +1043,7 @@ module Rjv
           points[0], points[4], points[5], points[1],
           points[2], points[3], points[7], points[6]
         ])
-        
+
         view.line_stipple = ""
         view.line_width = 1
         view.drawing_color = [color[0], color[1], color[2], 255]
