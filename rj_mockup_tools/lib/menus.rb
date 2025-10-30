@@ -195,7 +195,7 @@ module Rjv
           end
         end
 
-        puts "✅ #{PLUGIN_NAME} v#{PLUGIN_VERSION}: Menus criados (LAZY LOADING)"
+        puts "✅ #{Rjv::MockupTools::PLUGIN_NAME} v#{Rjv::MockupTools::VERSION}: Menus criados (LAZY LOADING)"
       end
     end
   end

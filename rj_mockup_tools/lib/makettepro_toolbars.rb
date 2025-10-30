@@ -29,14 +29,14 @@ module Rjv
         },
         analysis: {
           name: "MakettePro - Análise",
-          tools: [:color_manager, :planifier, :generate_report, :export_autocad, :collision_analyzer, :color_by_layer, :stretch_tool, :stretch_face_tool],
+          tools: [:color_manager, :planifier, :generate_report, :collision_analyzer, :color_by_layer, :stretch_tool, :stretch_face_tool],
           always_visible: true,
           priority: 3,
           lazy: true  # ✅ Carrega sob demanda
         },
         management: {
           name: "MakettePro - Gerenciamento",
-          tools: [:material_manager, :template_apply, :template_export],
+          tools: [:material_manager],
           always_visible: true,
           priority: 4,
           lazy: true  # ✅ Carrega sob demanda
@@ -53,7 +53,6 @@ module Rjv
         rotate_x: "rot_x",
         rotate_y: "rot_y",
         rotate_z: "rot_z",
-        export_autocad: "export_autocad",
         create_engraving: "create_engraving",
         create_all_engravings: "create_all_engravings",
         apply_stamp: "apply_stamp_native",
@@ -67,9 +66,7 @@ module Rjv
         color_by_layer: "color_by_layer_toggle",
         stretch_tool: "stretch_tool",
         stretch_face_tool: "stretch_face_tool",
-        material_manager: "material_manager",
-        template_apply: "template_apply",
-        template_export: "template_export"
+        material_manager: "material_manager"
       }
 
       # ===== CLASSE PRINCIPAL OTIMIZADA =====
