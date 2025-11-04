@@ -357,12 +357,35 @@ module Rjv
           
           puts "DEBUG: #{outer_loop_world_verts.length} vértices externos, #{inner_loops_world_verts.length} furos" if opts[:debug]
           
-          # 3. Configuração do gizmo
+          # 3. Configuração do gizmo - ✅ ALINHADO COM UV DA FACE
           comp_origin_world = outer_loop_world_verts.first
           comp_z_axis_world = world_normal
-          
-          # Transformação da instância no mundo
-          instance_world_transformation = Geom::Transformation.new(comp_origin_world, comp_z_axis_world)
+
+          # ✅ CALCULA EIXO X LOCAL BASEADO NA PRIMEIRA ARESTA DA FACE
+          # Isso garante que X, Y locais sigam a geometria da face, não os eixos globais
+          if outer_loop_world_verts.length >= 2
+            # Primeira aresta da face define o eixo X local
+            edge_vector = outer_loop_world_verts[1] - outer_loop_world_verts[0]
+            comp_x_axis_world = edge_vector.normalize
+
+            # Y é perpendicular a Z e X
+            comp_y_axis_world = comp_z_axis_world.cross(comp_x_axis_world).normalize
+
+            # Recalcula X para garantir ortogonalidade perfeita
+            comp_x_axis_world = comp_y_axis_world.cross(comp_z_axis_world).normalize
+
+            # Transformação com eixos explícitos alinhados à face
+            instance_world_transformation = Geom::Transformation.axes(
+              comp_origin_world,
+              comp_x_axis_world,
+              comp_y_axis_world,
+              comp_z_axis_world
+            )
+          else
+            # Fallback: Se face tem menos de 2 vértices (improvável), usa método antigo
+            instance_world_transformation = Geom::Transformation.new(comp_origin_world, comp_z_axis_world)
+          end
+
           origin_transformation_inv = instance_world_transformation.inverse
           
           # Vértices locais com Z=0 forçado
