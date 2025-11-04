@@ -1567,15 +1567,20 @@ module Rjv
               board_area = (board_length * board_width) / 1_000_000.0  # m²
               area_total = board_area * boards_count
               
-              # Calcula área usada pelas peças
+              # Calcula área usada pelas peças (com escala aplicada)
               [:normal, :mirrored, :scaled, :scaled_mirrored].each do |type|
                 types_hash[type].each do |data|
                   begin
                     original_def = data[:instance]&.definition
                     next unless original_def && original_def.valid?
-                    
+
                     face_area_mm2 = calculate_top_faces_area(original_def)
-                    area_used += (face_area_mm2 || 0.0) / 1_000_000.0
+
+                    # ✅ APLICA ESCALA NA ÁREA
+                    transform_info = extract_scale_and_mirror_from_transform(data[:world_transform])
+                    real_area_mm2 = face_area_mm2 * transform_info[:scale_x].abs * transform_info[:scale_y].abs
+
+                    area_used += (real_area_mm2 || 0.0) / 1_000_000.0
                   rescue => e
                     # Silencioso
                   end
@@ -1601,35 +1606,54 @@ module Rjv
           
           # Agrupa peças por nome e transformação
           parts_by_name = {}
-          
+
           [:normal, :mirrored, :scaled, :scaled_mirrored].each do |type|
             types_hash[type].each do |data|
               begin
                 original_def = data[:instance]&.definition
                 next unless original_def && original_def.valid?
-                
+
                 bounds = original_def.bounds
                 next unless bounds&.valid?
-                
+
                 face_area_mm2 = calculate_top_faces_area(original_def) || 0.0
-                
-                transform_info = analyze_scale(data[:world_transform])
-                
+
+                # ✅ EXTRAI ESCALA COMPLETA DA TRANSFORMAÇÃO
+                transform_info = extract_scale_and_mirror_from_transform(data[:world_transform])
+
+                # ✅ CALCULA DIMENSÕES REAIS (com escala aplicada)
+                real_width = bounds.width * transform_info[:scale_x].abs
+                real_height = bounds.height * transform_info[:scale_y].abs
+                real_depth = bounds.depth * transform_info[:scale_z].abs
+                real_area_mm2 = face_area_mm2 * transform_info[:scale_x].abs * transform_info[:scale_y].abs
+
                 grouping_key = "#{original_def.name}_#{type}"
-                
+
                 if parts_by_name[grouping_key]
                   parts_by_name[grouping_key]["quantity"] += 1
                 else
+                  # Monta string de transformação legível
+                  transformation_label = case type
+                    when :normal then "Normal"
+                    when :mirrored then "Espelhada"
+                    when :scaled then "Escalonada #{transform_info[:scale_factor].round(3)}x"
+                    when :scaled_mirrored then "Escalonada #{transform_info[:scale_factor].round(3)}x + Espelhada"
+                  end
+
                   piece_data = {
                     "name" => original_def.name,
-                    "dimensions" => "#{(bounds.width/1.mm).round(1)}x#{(bounds.height/1.mm).round(1)}x#{(bounds.depth/1.mm).round(1)}mm",
-                    "area_mm2" => face_area_mm2,
+                    "dimensions_original" => "#{(bounds.width/1.mm).round(1)}x#{(bounds.height/1.mm).round(1)}x#{(bounds.depth/1.mm).round(1)}mm",
+                    "dimensions_real" => "#{(real_width/1.mm).round(1)}x#{(real_height/1.mm).round(1)}x#{(real_depth/1.mm).round(1)}mm",
+                    "area_mm2" => real_area_mm2.round(2),
                     "quantity" => 1,
-                    "is_mirrored" => transform_info[:is_mirrored] || false,
-                    "is_scaled" => transform_info[:is_scaled] || false,
-                    "transformation_type" => type.to_s
+                    "is_mirrored" => transform_info[:is_mirrored],
+                    "is_scaled" => transform_info[:is_scaled],
+                    "scale_factor" => transform_info[:scale_factor].round(6),
+                    "scale_xyz" => "#{transform_info[:scale_x].round(3)}, #{transform_info[:scale_y].round(3)}, #{transform_info[:scale_z].round(3)}",
+                    "transformation_type" => type.to_s,
+                    "transformation_label" => transformation_label
                   }
-                  
+
                   parts_by_name[grouping_key] = piece_data
                 end
               rescue => e
@@ -1679,27 +1703,57 @@ module Rjv
       
       def count_boards_from_layout(master_group, material_info, layer_name)
         return 1 unless master_group && master_group.valid?
-        
+
         material_name = material_info ? material_info["name"] : layer_name.gsub(/^MU_/, '')
         boards_count = 0
-        
-        master_group.entities.grep(Sketchup::Group).each do |group|
-          next unless group && group.valid?
-          
-          group_name = group.name
-          next unless group_name
-          
-          if group_name.include?(material_name)
-            if group_name.match(/Prancha\s+\d+/i)
-              boards_count += 1
-            elsif group_name.match(/(\d+)\s+Pranchas/i)
-              match = group_name.match(/(\d+)\s+Pranchas/i)
-              count = match[1].to_i
-              boards_count += count
+
+        # ✅ CONTA RETÂNGULOS DA PRANCHA (faces na layer RJV_Board)
+        model = Sketchup.active_model
+        board_layer = model.layers[BOARD_LAYER_NAME]
+
+        if board_layer
+          # Busca recursivamente por faces na layer de prancha dentro do master_group
+          find_board_faces = ->(entities) do
+            entities.each do |entity|
+              if entity.is_a?(Sketchup::Face) && entity.layer == board_layer
+                # Verifica se é uma face grande o suficiente para ser prancha (não texto)
+                area_mm2 = entity.area * 645.16  # Conversão in² → mm²
+                if area_mm2 > 10000  # Maior que 100x100mm (filtra textos 3D)
+                  boards_count += 1
+                end
+              elsif entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance)
+                if entity.respond_to?(:entities) && entity.entities
+                  find_board_faces.call(entity.entities)
+                elsif entity.respond_to?(:definition) && entity.definition && entity.definition.entities
+                  find_board_faces.call(entity.definition.entities)
+                end
+              end
+            end
+          end
+
+          find_board_faces.call(master_group.entities)
+        end
+
+        # Se não encontrou pranchas pela layer, usa o método antigo (fallback)
+        if boards_count == 0
+          master_group.entities.grep(Sketchup::Group).each do |group|
+            next unless group && group.valid?
+
+            group_name = group.name
+            next unless group_name
+
+            if group_name.include?(material_name)
+              if group_name.match(/Prancha\s+\d+/i)
+                boards_count += 1
+              elsif group_name.match(/(\d+)\s+Pranchas/i)
+                match = group_name.match(/(\d+)\s+Pranchas/i)
+                count = match[1].to_i
+                boards_count += count
+              end
             end
           end
         end
-        
+
         boards_count > 0 ? boards_count : 1
       end
       
