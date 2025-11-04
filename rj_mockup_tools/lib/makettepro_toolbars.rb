@@ -29,7 +29,7 @@ module Rjv
         },
         analysis: {
           name: "MakettePro - Análise",
-          tools: [:color_manager, :planifier, :generate_report, :collision_analyzer, :color_by_layer, :stretch_tool, :stretch_face_tool],
+          tools: [:color_manager, :apply_3d_print, :planifier, :generate_report, :collision_analyzer, :color_by_layer, :stretch_tool, :stretch_face_tool],
           always_visible: true,
           priority: 3,
           lazy: true  # ✅ Carrega sob demanda
@@ -60,6 +60,7 @@ module Rjv
         select_stamps: "select_stamps",
         update_stamps: "update_stamps",
         color_manager: "color_manager",
+        apply_3d_print: "apply_3d_print",
         planifier: "planifier",
         generate_report: "generate_report",
         collision_analyzer: "collision_analyzer",
@@ -216,6 +217,7 @@ module Rjv
             select_stamps: "Selecionar Carimbos",
             update_stamps: "Atualizar Carimbos",
             color_manager: "Gerenciador de Cores",
+            apply_3d_print: "Aplicar Impressão 3D",
             planifier: "Planificar Peças",
             generate_report: "Gerar Relatório de Planificação",
             collision_analyzer: "Analisador de Colisões",
@@ -245,6 +247,9 @@ module Rjv
           when "stretch_face_tool"
             Rjv::MockupTools.ensure_loaded('StretchFaceTool')
             Sketchup.active_model.select_tool(Rjv::MockupTools::StretchFaceTool.new)
+          when "apply_3d_print"
+            Rjv::MockupTools.ensure_loaded('Apply3DPrint')
+            Rjv::MockupTools::Apply3DPrint.run
           when "material_manager"
             # MaterialSystem já está carregado no início
             Rjv::MockupTools::MaterialSystem.open_property_editor

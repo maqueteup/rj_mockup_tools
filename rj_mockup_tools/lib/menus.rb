@@ -99,8 +99,13 @@ module Rjv
         
         # ===== PRODUÇÃO =====
         production_submenu = mockup_submenu.add_submenu("Produção")
-        
-        production_submenu.add_item("Planificar Peças") { 
+
+        production_submenu.add_item("Aplicar Impressão 3D") {
+          Rjv::MockupTools.ensure_loaded('Apply3DPrint')
+          Rjv::MockupTools::Apply3DPrint.run
+        }
+
+        production_submenu.add_item("Planificar Peças") {
           Rjv::MockupTools.ensure_loaded('Planifier')
           Rjv::MockupTools::Planifier.run 
         }
