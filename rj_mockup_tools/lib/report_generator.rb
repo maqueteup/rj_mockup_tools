@@ -389,45 +389,53 @@ module Rjv
       
       def format_part_name(part)
         base_name = part["name"]
-        type = part["transformation_type"]
-        
-        # NOVO: Calcula dimensões reais considerando escala
+
+        # ✅ USA DIMENSÕES REAIS (já calculadas no planifier)
         dimensions = ""
-        if part["dimensions"]
+        if part["dimensions_real"]
+          dims_parts = part["dimensions_real"].split('x')
+          if dims_parts.length >= 2
+            x = dims_parts[0].strip.gsub(/mm$/, '').to_f.to_i
+            y = dims_parts[1].strip.gsub(/mm$/, '').to_f.to_i
+            dimensions = " (#{x}×#{y})"
+          end
+        elsif part["dimensions"]  # Fallback para formato antigo
           dims_parts = part["dimensions"].split('x')
           if dims_parts.length >= 2
-            # Dimensões originais (em mm, remove "mm" se houver)
-            x_original = dims_parts[0].strip.gsub(/mm$/, '').to_f
-            y_original = dims_parts[1].strip.gsub(/mm$/, '').to_f
-            
-            # Aplica escala se a peça for escalonada
-            if type.include?("Escalonada") && part["scale_details"]
-              scale_x = part.dig("scale_details", "x") || 1.0
-              scale_y = part.dig("scale_details", "y") || 1.0
-              
-              # Calcula dimensões reais (escalonadas)
-              x_real = (x_original * scale_x).round(1)
-              y_real = (y_original * scale_y).round(1)
-              
-              dimensions = " (#{x_real.to_i}×#{y_real.to_i})"
-            else
-              # Dimensões normais (sem escala)
-              dimensions = " (#{x_original.to_i}×#{y_original.to_i})"
-            end
+            x = dims_parts[0].strip.gsub(/mm$/, '').to_f.to_i
+            y = dims_parts[1].strip.gsub(/mm$/, '').to_f.to_i
+            dimensions = " (#{x}×#{y})"
           end
         end
-        
-        # NOVO: Só ícones, sem texto explicativo
+
+        # ✅ USA TRANSFORMATION_LABEL se disponível
+        if part["transformation_label"]
+          case part["transformation_label"]
+          when "Normal"
+            return "#{base_name}#{dimensions}"
+          when "Espelhada"
+            return "#{base_name}#{dimensions} 🪞"
+          when /^Escalonada (.+)/
+            return "#{base_name}#{dimensions} 📏"
+          when /^Escalonada (.+) \+ Espelhada/
+            return "#{base_name}#{dimensions} 🪞📏"
+          else
+            return "#{base_name}#{dimensions}"
+          end
+        end
+
+        # Fallback: usa transformation_type antigo
+        type = part["transformation_type"] || ""
         case type
-        when "Normal" 
+        when "normal"
           "#{base_name}#{dimensions}"
-        when "Espelhada" 
+        when "mirrored"
           "#{base_name}#{dimensions} 🪞"
-        when "Escalonada"
+        when "scaled"
           "#{base_name}#{dimensions} 📏"
-        when "Espelhada e Escalonada"
+        when "scaled_mirrored"
           "#{base_name}#{dimensions} 🪞📏"
-        else 
+        else
           "#{base_name}#{dimensions}"
         end
       end
