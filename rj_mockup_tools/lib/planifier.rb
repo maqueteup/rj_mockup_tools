@@ -489,21 +489,26 @@ module Rjv
         x_axis = Geom::Vector3d.new(1, 0, 0)
         y_axis = Geom::Vector3d.new(0, 1, 0)
         z_axis = Geom::Vector3d.new(0, 0, 1)
-        
+
         x_scale = x_axis.transform(transform).length.to_f
         y_scale = y_axis.transform(transform).length.to_f
         z_scale = z_axis.transform(transform).length.to_f
-        
+
+        # ✅ ARREDONDA para 6 casas decimais
+        x_scale = x_scale.round(6)
+        y_scale = y_scale.round(6)
+        z_scale = z_scale.round(6)
+
         unit = 1.0
-        tolerance = 1e-10
-        
-        is_scaled = !((x_scale - unit).abs < tolerance && 
-                      (y_scale - unit).abs < tolerance && 
+        tolerance = 1e-4  # Tolerância realista (0.01%)
+
+        is_scaled = !((x_scale - unit).abs < tolerance &&
+                      (y_scale - unit).abs < tolerance &&
                       (z_scale - unit).abs < tolerance)
-        
+
         determinant = transform.xaxis.cross(transform.yaxis).dot(transform.zaxis)
         is_mirrored = determinant < 0
-        
+
         { is_scaled: is_scaled, is_mirrored: is_mirrored }
       end
       
@@ -578,18 +583,51 @@ module Rjv
           
           # PASSO 7: REAPLICA ESCALA
           if apply_scale
+            # Guarda dimensões originais da definição para validação
+            original_bounds = info[:definition].bounds
+            original_width = original_bounds.width * scale_info[:scale_x].abs
+            original_height = original_bounds.height * scale_info[:scale_y].abs
+            original_depth = original_bounds.depth * scale_info[:scale_z].abs
+
             bounds = ci.bounds
             center = bounds.center
-            
+
             scale_transform = Geom::Transformation.scaling(
               center,
               scale_info[:scale_x].abs,
               scale_info[:scale_y].abs,
               scale_info[:scale_z].abs
             )
-            
+
             ci.transform!(scale_transform)
-            puts "    ✓ Escala reaplicada"
+
+            # ✅ VALIDAÇÃO: Verifica se as dimensões finais estão corretas
+            final_bounds = ci.bounds
+            tolerance_mm = 0.01.mm  # Tolerância de 0.01mm
+
+            width_diff = (final_bounds.width - original_width).abs
+            height_diff = (final_bounds.height - original_height).abs
+            depth_diff = (final_bounds.depth - original_depth).abs
+
+            if width_diff > tolerance_mm || height_diff > tolerance_mm || depth_diff > tolerance_mm
+              # Calcula fator de correção necessário
+              correction_x = original_width / final_bounds.width
+              correction_y = original_height / final_bounds.height
+              correction_z = original_depth / final_bounds.depth
+
+              # Aplica correção
+              correction_transform = Geom::Transformation.scaling(
+                final_bounds.center,
+                correction_x,
+                correction_y,
+                correction_z
+              )
+              ci.transform!(correction_transform)
+
+              puts "    ✓ Escala reaplicada + corrigida (dif: #{(width_diff/1.mm).round(3)}mm)"
+            else
+              puts "    ✓ Escala reaplicada (precisão OK)"
+            end
           end
           
           # PASSO 8: REAPLICA ESPELHAMENTO
@@ -1174,23 +1212,28 @@ module Rjv
         x_axis = Geom::Vector3d.new(1, 0, 0)
         y_axis = Geom::Vector3d.new(0, 1, 0)
         z_axis = Geom::Vector3d.new(0, 0, 1)
-        
+
         x_scale = x_axis.transform(transform).length.to_f
         y_scale = y_axis.transform(transform).length.to_f
         z_scale = z_axis.transform(transform).length.to_f
-        
+
+        # ✅ ARREDONDA para 6 casas decimais para evitar acúmulo de erros
+        x_scale = x_scale.round(6)
+        y_scale = y_scale.round(6)
+        z_scale = z_scale.round(6)
+
         unit = 1.0
-        tolerance = 1e-12
-        
-        is_scaled = !((x_scale - unit).abs < tolerance && 
-                      (y_scale - unit).abs < tolerance && 
+        tolerance = 1e-4  # Tolerância mais realista (0.01%)
+
+        is_scaled = !((x_scale - unit).abs < tolerance &&
+                      (y_scale - unit).abs < tolerance &&
                       (z_scale - unit).abs < tolerance)
-        
+
         determinant = transform.xaxis.cross(transform.yaxis).dot(transform.zaxis)
         is_mirrored = determinant < 0
-        
+
         scale_factor = [x_scale, y_scale, z_scale].max
-        
+
         {
           is_scaled: is_scaled,
           is_mirrored: is_mirrored,
