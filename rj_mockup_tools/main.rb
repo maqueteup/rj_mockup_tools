@@ -54,6 +54,7 @@ module Rjv
       'GroupToComponent' => 'lib/group_to_component',
       'UpdateStamps' => 'lib/update_stamps',
       'LaserEngraving' => 'lib/laser_engraving',
+      'Apply3DPrint' => 'lib/apply_3d_print',
       'Planifier' => 'lib/planifier',
       'ReportGenerator' => 'lib/report_generator',
       'MaterialColorManager' => 'lib/material_color_manager',

@@ -227,9 +227,14 @@ module Rjv
           master_group = nil
           if all_groups.any?
             master_group = mod.entities.add_group(all_groups)
-            master_group.name = "Planificação_#{mode}_#{Time.now.strftime('%Y%m%d_%H%M%S')}"
+            timestamp = Time.now
+            master_group.name = "Planificação_#{mode}_#{timestamp.strftime('%Y%m%d_%H%M%S')}"
             puts "  ✓ Grupo master criado: #{master_group.name}"
-            
+
+            # ✅ SALVA DATA/HORA DA PLANIFICAÇÃO
+            master_group.set_attribute("RJV_Cut", "created_at", timestamp.strftime('%d/%m/%Y %H:%M:%S'))
+            master_group.set_attribute("RJV_Cut", "mode", mode)
+
             # SALVA DADOS DO RELATÓRIO
             save_layout_report_data(master_group, mode, settings, data_by_layer, materials_data, all_instances)
           end

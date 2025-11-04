@@ -107,48 +107,59 @@ module Rjv
         stamp_text = parent_definition.name.empty? ? "SemNome" : parent_definition.name
         target_entities = parent_definition.entities
 
-        bounds = top_face.bounds
+        face_bounds = top_face.bounds
 
-        # ✅ CALCULA PONTO BASE CONFORME O CANTO ESCOLHIDO
+        # ✅ CRIA TEXTO TEMPORÁRIO PARA OBTER SUA BOUNDING BOX
+        temp_group = target_entities.add_group
+        temp_group.entities.add_3d_text(
+          stamp_text, TextAlignLeft, settings[:fontName],
+          false, false, settings[:fontSize].mm, 0.0, 0.0, false, 0.0
+        )
+        text_bounds = temp_group.bounds
+
+        # ✅ CALCULA PONTO BASE CONFORME O CANTO ESCOLHIDO (USANDO FACE BOUNDS)
         corner = settings[:corner] || "bottom_left"
         base_pt = case corner
                   when "bottom_left"
-                    bounds.min  # canto inferior esquerdo
+                    face_bounds.min
                   when "bottom_right"
-                    Geom::Point3d.new(bounds.max.x, bounds.min.y, bounds.min.z)
+                    Geom::Point3d.new(face_bounds.max.x, face_bounds.min.y, face_bounds.min.z)
                   when "top_left"
-                    Geom::Point3d.new(bounds.min.x, bounds.max.y, bounds.min.z)
+                    Geom::Point3d.new(face_bounds.min.x, face_bounds.max.y, face_bounds.min.z)
                   when "top_right"
-                    Geom::Point3d.new(bounds.max.x, bounds.max.y, bounds.min.z)
+                    Geom::Point3d.new(face_bounds.max.x, face_bounds.max.y, face_bounds.min.z)
                   else
-                    bounds.min  # fallback para canto inferior esquerdo
+                    face_bounds.min
                   end
 
         base_pt_on_plane = base_pt.project_to_plane(top_face.plane)
 
-        # Ajusta o offset conforme o canto (inverte X/Y para cantos superiores/direitos)
-        offset_x = corner.include?("right") ? -settings[:offsetX].mm : settings[:offsetX].mm
-        offset_y = corner.include?("top") ? -settings[:offsetY].mm : settings[:offsetY].mm
+        # ✅ AJUSTA OFFSET BASEADO NO CANTO E BOUNDING BOX DO TEXTO
+        offset_x = settings[:offsetX].mm
+        offset_y = settings[:offsetY].mm
+
+        # Para cantos à direita, subtrai a largura do texto do offset
+        if corner.include?("right")
+          offset_x = -offset_x - text_bounds.width
+        end
+
+        # Para cantos superiores, subtrai a altura do texto do offset
+        if corner.include?("top")
+          offset_y = -offset_y - text_bounds.height
+        end
 
         offset_vector = Geom::Vector3d.new(offset_x, offset_y, 0)
         insertion_point = base_pt_on_plane.offset(offset_vector)
+
+        # ✅ MOVE O GRUPO TEMPORÁRIO PARA A POSIÇÃO FINAL
         transform = Geom::Transformation.translation(insertion_point)
-        
-        new_stamp_group = target_entities.add_group
-        new_stamp_group.entities.add_3d_text(
-          stamp_text, TextAlignLeft, settings[:fontName], 
-          false, false, settings[:fontSize].mm, 0.0, 0.0, false, 0.0
-        )
-        
-        new_stamp_group.transform!(transform)
-        
-        new_stamp_group.name = "RJVStamp_#{stamp_text.gsub(/[^\w_.-]/, '_').slice(0,30)}"
-        new_stamp_group.layer = stamp_layer
-        new_stamp_group.set_attribute(STAMP_ATTRIBUTE_DICT, STAMP_GROUP_IDENTIFIER_KEY, true)
-        
-        # --- MUDANÇA PRINCIPAL AQUI ---
-        # Salva o nome da definição do pai no atributo do carimbo
-        new_stamp_group.set_attribute(STAMP_ATTRIBUTE_DICT, PARENT_DEF_NAME_KEY, parent_definition.name)
+        temp_group.transform!(transform)
+
+        # Renomeia e configura o grupo
+        temp_group.name = "RJVStamp_#{stamp_text.gsub(/[^\w_.-]/, '_').slice(0,30)}"
+        temp_group.layer = stamp_layer
+        temp_group.set_attribute(STAMP_ATTRIBUTE_DICT, STAMP_GROUP_IDENTIFIER_KEY, true)
+        temp_group.set_attribute(STAMP_ATTRIBUTE_DICT, PARENT_DEF_NAME_KEY, parent_definition.name)
         
         return true
       end

@@ -176,10 +176,6 @@ def self.fix_pending_stamps
         message = "#{updated_count} carimbo(s) foram atualizados."
         Sketchup.status_text = message
         puts message
-
-        UI.start_timer(0.1, false) do
-          Rjv::MockupTools.check_and_update_selection_info
-        end
       end
 
     end

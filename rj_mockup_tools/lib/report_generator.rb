@@ -570,7 +570,6 @@ module Rjv
                 <div class="summary-item"><div class="value" id="total-materials">0</div><div class="label">Materiais</div></div>
                 <div class="summary-item"><div class="value" id="total-variations">0</div><div class="label">Variações</div></div>
                 <div class="summary-item"><div class="value" id="total-parts">0</div><div class="label">Peças Totais</div></div>
-                <div class="summary-item"><div class="value" id="total-boards">0</div><div class="label">Pranchas</div></div>
             </div>
             <main class="main-content">
                 <div class="materials-grid" id="materials-grid">
@@ -620,7 +619,6 @@ module Rjv
             const summary = data.summary || {};
             document.getElementById('total-materials').textContent = summary.total_materials || 0;
             document.getElementById('total-parts').textContent = summary.total_parts || 0;
-            document.getElementById('total-boards').textContent = summary.total_boards || 0;
             const uniqueVariations = new Set((data.materials || []).flatMap(m => (m.parts_list || []).map(p => p.name))).size;
             document.getElementById('total-variations').textContent = uniqueVariations;
 
@@ -660,9 +658,6 @@ module Rjv
                 card.innerHTML = \`
                     <div class="material-header">
                         <h2 class="material-name">\${materialName}</h2>
-                        <div class="material-stats">
-                            <span>Pranchas: <strong>\${material.boards_count || 0}</strong></span>
-                        </div>
                     </div>
                     <div class="parts-list">\${partsListHTML || '<p>Nenhuma peça.</p>'}</div>
                 \`;
