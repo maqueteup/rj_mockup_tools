@@ -1,0 +1,548 @@
+{
+  "types": [
+    {
+      "name": "ACRILICO",
+      "color": "#4186cd"
+    },
+    {
+      "name": "ACRILICO ESPELHADO",
+      "color": "#2fd7f9"
+    },
+    {
+      "name": "AMADEIRADO",
+      "color": "#7f6666"
+    },
+    {
+      "name": "FORMICA",
+      "color": "#ffcc99"
+    },
+    {
+      "name": "MDF",
+      "color": "#8b6e43"
+    },
+    {
+      "name": "MDF BRANCO",
+      "color": "#7c6419"
+    },
+    {
+      "name": "PAPEL COURO",
+      "color": "#ee6868"
+    },
+    {
+      "name": "PET",
+      "color": "#9fde17"
+    },
+    {
+      "name": "PVC",
+      "color": "#a09c37"
+    }
+  ],
+  "finishes": [
+    {
+      "name": "AGUA",
+      "color": "#70c0d3",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "AZUL",
+      "color": "#42388a",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "BRANCO",
+      "color": "#d9d9d9",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "BRONZE",
+      "color": "#d06106",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "CINZA",
+      "color": "#888888",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "CRYSTAL",
+      "color": "#c6c6c6",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "DOURADO",
+      "color": "#f6e209",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "DUPLAFACE",
+      "color": "#0091c2",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "FUME",
+      "color": "#545454",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "GRAMA",
+      "color": "#007000",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "LEITOSO",
+      "color": "#ccccff",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "PRATA",
+      "color": "#ddd0c5",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "PRETO",
+      "color": "#4d5654",
+      "sketchupMaterial": "",
+      "active": true
+    },
+    {
+      "name": "VERDE",
+      "color": "#c3ffad",
+      "sketchupMaterial": "",
+      "active": true
+    }
+  ],
+  "materials": [
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 1mm - AGUA",
+      "thickness": 0.1,
+      "finish": "AGUA",
+      "boardLength": 1350,
+      "boardWidth": 900,
+      "sketchupMaterial": "",
+      "color": "#3fe2f8",
+      "layer": "MU_ACRILICO 1mm - AGUA",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 1mm - BRANCO",
+      "thickness": 0.1,
+      "finish": "BRANCO",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#99ff99",
+      "layer": "MU_ACRILICO 1mm - BRANCO",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 1mm - CRYSTAL",
+      "thickness": 0.1,
+      "finish": "CRYSTAL",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#d7d6d6",
+      "layer": "MU_ACRILICO 1mm - CRYSTAL",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 1mm - PRETO",
+      "thickness": 0.1,
+      "finish": "PRETO",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#6e6e6e",
+      "layer": "MU_ACRILICO 1mm - PRETO",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 2mm - AGUA",
+      "thickness": 0.2,
+      "finish": "AGUA",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#41b9ec",
+      "layer": "MU_ACRILICO 2mm - AGUA",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 2mm - BRANCO",
+      "thickness": 0.2,
+      "finish": "BRANCO",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#f5f5f5",
+      "layer": "MU_ACRILICO 2mm - BRANCO",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 2mm - CINZA",
+      "thickness": 0.2,
+      "finish": "CINZA",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#ff65b2",
+      "layer": "MU_ACRILICO 2mm - CINZA",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 2mm - CRYSTAL",
+      "thickness": 0.2,
+      "finish": "CRYSTAL",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#b0b0b0",
+      "layer": "MU_ACRILICO 2mm - CRYSTAL",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 2mm - LEITOSO",
+      "thickness": 0.2,
+      "finish": "LEITOSO",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#f29797",
+      "layer": "MU_ACRILICO 2mm - LEITOSO",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 2mm - PRETO",
+      "thickness": 0.2,
+      "finish": "PRETO",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#525252",
+      "layer": "MU_ACRILICO 2mm - PRETO",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 3mm - CRYSTAL",
+      "thickness": 0.3,
+      "finish": "CRYSTAL",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#ff0f0f",
+      "layer": "MU_ACRILICO 3mm - CRYSTAL",
+      "active": true
+    },
+    {
+      "type": "ACRILICO",
+      "name": "ACRILICO 4mm - CRYSTAL",
+      "thickness": 0.4,
+      "finish": "CRYSTAL",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#ff6565",
+      "layer": "MU_ACRILICO 4mm - CRYSTAL",
+      "active": true
+    },
+    {
+      "type": "ACRILICO ESPELHADO",
+      "name": "ACRILICO ESPELHADO 2mm - AZUL",
+      "thickness": 0.2,
+      "finish": "AZUL",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#6468e8",
+      "layer": "MU_ACRILICO ESPELHADO 2mm - AZUL",
+      "active": true
+    },
+    {
+      "type": "ACRILICO ESPELHADO",
+      "name": "ACRILICO ESPELHADO 2mm - BRONZE",
+      "thickness": 0.2,
+      "finish": "BRONZE",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#a7a052",
+      "layer": "MU_ACRILICO ESPELHADO 2mm - BRONZE",
+      "active": true
+    },
+    {
+      "type": "ACRILICO ESPELHADO",
+      "name": "ACRILICO ESPELHADO 2mm - DOURADO",
+      "thickness": 0.2,
+      "finish": "DOURADO",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#ecb641",
+      "layer": "MU_ACRILICO ESPELHADO 2mm - DOURADO",
+      "active": true
+    },
+    {
+      "type": "ACRILICO ESPELHADO",
+      "name": "ACRILICO ESPELHADO 2mm - FUME",
+      "thickness": 0.2,
+      "finish": "FUME",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#605c5c",
+      "layer": "MU_ACRILICO ESPELHADO 2mm - FUME",
+      "active": true
+    },
+    {
+      "type": "ACRILICO ESPELHADO",
+      "name": "ACRILICO ESPELHADO 2mm - PRATA",
+      "thickness": 0.2,
+      "finish": "PRATA",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#dd80ff",
+      "layer": "MU_ACRILICO ESPELHADO 2mm - PRATA",
+      "active": true
+    },
+    {
+      "type": "ACRILICO ESPELHADO",
+      "name": "ACRILICO ESPELHADO 2mm - VERDE",
+      "thickness": 0.2,
+      "finish": "VERDE",
+      "boardLength": 1000,
+      "boardWidth": 500,
+      "sketchupMaterial": "",
+      "color": "#00c703",
+      "layer": "MU_ACRILICO ESPELHADO 2mm - VERDE",
+      "active": true
+    },
+    {
+      "type": "AMADEIRADO",
+      "name": "AMADEIRADO 0.7mm",
+      "thickness": 0.06999999999999999,
+      "boardLength": 600,
+      "boardWidth": 250,
+      "sketchupMaterial": "",
+      "color": "#90646d",
+      "finishes": [
+        "DUPLAFACE"
+      ],
+      "layer": "MU_AMADEIRADO 0.7mm",
+      "active": true,
+      "finish": ""
+    },
+    {
+      "type": "MDF",
+      "name": "MDF 2.5mm",
+      "thickness": 0.25,
+      "boardLength": 1350,
+      "boardWidth": 900,
+      "sketchupMaterial": "",
+      "color": "#ffd8cc",
+      "finishes": [
+
+      ],
+      "layer": "MU_MDF 2.5mm",
+      "active": true,
+      "finish": ""
+    },
+    {
+      "type": "MDF",
+      "name": "MDF 2.8mm - BRANCO",
+      "thickness": 0.27999999999999997,
+      "finish": "BRANCO",
+      "boardLength": 1350,
+      "boardWidth": 900,
+      "sketchupMaterial": "",
+      "color": "#7c6419",
+      "layer": "MU_MDF 2.8mm - BRANCO",
+      "active": true
+    },
+    {
+      "type": "MDF",
+      "name": "MDF 3.2mm",
+      "thickness": 0.32,
+      "boardLength": 1350,
+      "boardWidth": 900,
+      "sketchupMaterial": "",
+      "color": "#7c6419",
+      "finishes": [
+
+      ],
+      "layer": "MU_MDF 3.2mm",
+      "active": true,
+      "finish": ""
+    },
+    {
+      "type": "MDF",
+      "name": "MDF 6.4mm",
+      "thickness": 0.64,
+      "boardLength": 1350,
+      "boardWidth": 900,
+      "sketchupMaterial": "",
+      "color": "#ffd865",
+      "finishes": [
+
+      ],
+      "layer": "MU_MDF 6.4mm",
+      "active": true,
+      "finish": ""
+    },
+    {
+      "type": "MDF",
+      "name": "MDF 9.6mm",
+      "thickness": 0.96,
+      "boardLength": 1350,
+      "boardWidth": 900,
+      "sketchupMaterial": "",
+      "color": "#006dd3",
+      "finishes": [
+
+      ],
+      "layer": "MU_MDF 9.6mm",
+      "active": true,
+      "finish": ""
+    },
+    {
+      "type": "PAPEL COURO",
+      "name": "PAPEL COURO 0.8mm",
+      "thickness": 0.08,
+      "finish": "",
+      "boardLength": 600,
+      "boardWidth": 400,
+      "sketchupMaterial": "",
+      "color": "#d18989",
+      "layer": "MU_PAPEL COURO 0.8mm",
+      "active": true
+    },
+    {
+      "type": "PAPEL COURO",
+      "name": "PAPEL COURO 1mm",
+      "thickness": 0.1,
+      "boardLength": 600,
+      "boardWidth": 400,
+      "sketchupMaterial": "",
+      "color": "#d18989",
+      "finishes": [
+
+      ],
+      "layer": "MU_PAPEL COURO 1mm",
+      "active": true,
+      "finish": ""
+    },
+    {
+      "type": "PET",
+      "name": "PET 0.2mm",
+      "thickness": 0.02,
+      "boardLength": 850,
+      "boardWidth": 600,
+      "sketchupMaterial": "",
+      "color": "#cccccc",
+      "finishes": [
+        "DUPLAFACE"
+      ],
+      "layer": "MU_PET 0.2mm",
+      "active": true,
+      "finish": ""
+    },
+    {
+      "type": "PET",
+      "name": "PET 0.5mm",
+      "thickness": 0.05,
+      "boardLength": 850,
+      "boardWidth": 600,
+      "sketchupMaterial": "",
+      "color": "#e2f584",
+      "finishes": [
+        "DUPLAFACE"
+      ],
+      "layer": "MU_PET 0.5mm",
+      "active": true,
+      "finish": ""
+    },
+    {
+      "type": "PET",
+      "name": "PET 0.7mm - GRAMA",
+      "thickness": 0.06999999999999999,
+      "finish": "GRAMA",
+      "boardLength": 850,
+      "boardWidth": 600,
+      "sketchupMaterial": "",
+      "color": "#660833",
+      "layer": "MU_PET 0.7mm - GRAMA",
+      "active": true
+    },
+    {
+      "type": "PVC",
+      "name": "PVC 1mm - BRANCO",
+      "thickness": 0.1,
+      "finish": "BRANCO",
+      "boardLength": 1200,
+      "boardWidth": 600,
+      "sketchupMaterial": "",
+      "color": "#e54343",
+      "layer": "MU_PVC 1mm - BRANCO",
+      "active": true
+    },
+    {
+      "type": "PVC",
+      "name": "PVC 2mm - BRANCO",
+      "thickness": 0.2,
+      "finish": "BRANCO",
+      "boardLength": 1200,
+      "boardWidth": 600,
+      "sketchupMaterial": "",
+      "color": "#5a5858",
+      "layer": "MU_PVC 2mm - BRANCO",
+      "active": true
+    },
+    {
+      "type": "PVC",
+      "name": "PVC 2mm - GRAMA",
+      "thickness": 0.2,
+      "finish": "GRAMA",
+      "boardLength": 1200,
+      "boardWidth": 600,
+      "sketchupMaterial": "",
+      "color": "#3d7902",
+      "layer": "MU_PVC 2mm - GRAMA",
+      "active": true
+    },
+    {
+      "type": "PVC",
+      "name": "PVC 3mm - BRANCO",
+      "thickness": 0.3,
+      "finish": "BRANCO",
+      "boardLength": 1200,
+      "boardWidth": 600,
+      "sketchupMaterial": "",
+      "color": "#cd37eb",
+      "layer": "MU_PVC 3mm - BRANCO",
+      "active": true
+    }
+  ]
+}

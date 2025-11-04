@@ -1,0 +1,164 @@
+{
+  "combinations": [
+    {
+      "name": "ACRILICO 1mm + AGUA",
+      "material_name": "ACRILICO 1mm",
+      "finish_name": "AGUA",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#99ff99,#70c0d3"
+    },
+    {
+      "name": "ACRILICO 1mm + BRANCO",
+      "material_name": "ACRILICO 1mm",
+      "finish_name": "BRANCO",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#99ff99,#d9d9d9"
+    },
+    {
+      "name": "ACRILICO 1mm + CRYSTAL",
+      "material_name": "ACRILICO 1mm",
+      "finish_name": "CRYSTAL",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#99ff99,#c6c6c6"
+    },
+    {
+      "name": "ACRILICO 2mm + AGUA",
+      "material_name": "ACRILICO 2mm",
+      "finish_name": "AGUA",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#ff65b2,#70c0d3"
+    },
+    {
+      "name": "ACRILICO 2mm + BRANCO",
+      "material_name": "ACRILICO 2mm",
+      "finish_name": "BRANCO",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#ff65b2,#d9d9d9"
+    },
+    {
+      "name": "ACRILICO 2mm + CINZA",
+      "material_name": "ACRILICO 2mm",
+      "finish_name": "CINZA",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#ff65b2,#888888"
+    },
+    {
+      "name": "ACRILICO 3mm + CRYSTAL",
+      "material_name": "ACRILICO 3mm",
+      "finish_name": "CRYSTAL",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#6565ff,#c6c6c6"
+    },
+    {
+      "name": "ACRILICO 4mm + CRYSTAL",
+      "material_name": "ACRILICO 4mm",
+      "finish_name": "CRYSTAL",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#ff6565,#c6c6c6"
+    },
+    {
+      "name": "ACRILICO ESPELHADO 2mm + AZUL",
+      "material_name": "ACRILICO ESPELHADO 2mm",
+      "finish_name": "AZUL",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#dd80ff,#42388a"
+    },
+    {
+      "name": "ACRILICO ESPELHADO 2mm + BRONZE",
+      "material_name": "ACRILICO ESPELHADO 2mm",
+      "finish_name": "BRONZE",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#dd80ff,#d06106"
+    },
+    {
+      "name": "ACRILICO ESPELHADO 2mm + DOURADO",
+      "material_name": "ACRILICO ESPELHADO 2mm",
+      "finish_name": "DOURADO",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#dd80ff,#f6e209"
+    },
+    {
+      "name": "AMADEIRADO 0.7mm + DUPLAFACE",
+      "material_name": "AMADEIRADO 0.7mm",
+      "finish_name": "DUPLAFACE",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#90646d,#0091c2"
+    },
+    {
+      "name": "PET 0.2mm + DUPLAFACE",
+      "material_name": "PET 0.2mm",
+      "finish_name": "DUPLAFACE",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#cccccc,#0091c2"
+    },
+    {
+      "name": "PET 0.5mm + DUPLAFACE",
+      "material_name": "PET 0.5mm",
+      "finish_name": "DUPLAFACE",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#e2f584,#0091c2"
+    },
+    {
+      "name": "PET 0.7mm + DUPLAFACE",
+      "material_name": "PET 0.7mm",
+      "finish_name": "DUPLAFACE",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#660833,#0091c2"
+    },
+    {
+      "name": "PET 0.7mm + GRAMA",
+      "material_name": "PET 0.7mm",
+      "finish_name": "GRAMA",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#660833,#007000"
+    },
+    {
+      "name": "PVC 1mm + BRANCO",
+      "material_name": "PVC 1mm",
+      "finish_name": "BRANCO",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#e54343,#d9d9d9"
+    },
+    {
+      "name": "PVC 2mm + BRANCO",
+      "material_name": "PVC 2mm",
+      "finish_name": "BRANCO",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#5a5858,#d9d9d9"
+    },
+    {
+      "name": "PVC 2mm + GRAMA",
+      "material_name": "PVC 2mm",
+      "finish_name": "GRAMA",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#5a5858,#007000"
+    },
+    {
+      "name": "PVC 3mm + BRANCO",
+      "material_name": "PVC 3mm",
+      "finish_name": "BRANCO",
+      "active": true,
+      "auto_generated": true,
+      "icon_data": "combined:#cd37eb,#d9d9d9"
+    }
+  ]
+}
