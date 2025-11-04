@@ -13,7 +13,8 @@ module Rjv
         fontName: "Arial",
         fontSize: 3.0,
         offsetX: 3.0,
-        offsetY: 3.0
+        offsetY: 3.0,
+        corner: "bottom_left"  # bottom_left, bottom_right, top_left, top_right
       }.freeze
 
       def load_settings

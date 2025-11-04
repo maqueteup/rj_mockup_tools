@@ -28,12 +28,34 @@ module Rjv
         font_list = ["TXT", "Simplex", "1CamBam_Stick_1"]
         unless font_list.include?(current[:fontName]); font_list.unshift(current[:fontName]); end
         font_list_str = font_list.join("|")
-        prompts = ["Fonte:", "Tamanho (mm):", "Offset X (mm):", "Offset Y (mm):"]
-        defaults = [current[:fontName], current[:fontSize], current[:offsetX], current[:offsetY]]
-        lists = [font_list_str, "", "", ""]
+
+        # ✅ LISTA DE CANTOS
+        corner_options = {
+          "bottom_left" => "Inferior Esquerdo",
+          "bottom_right" => "Inferior Direito",
+          "top_left" => "Superior Esquerdo",
+          "top_right" => "Superior Direito"
+        }
+        current_corner = current[:corner] || "bottom_left"
+        corner_list_str = corner_options.values.join("|")
+        current_corner_label = corner_options[current_corner] || "Inferior Esquerdo"
+
+        prompts = ["Fonte:", "Tamanho (mm):", "Offset X (mm):", "Offset Y (mm):", "Canto:"]
+        defaults = [current[:fontName], current[:fontSize], current[:offsetX], current[:offsetY], current_corner_label]
+        lists = [font_list_str, "", "", "", corner_list_str]
         results = UI.inputbox(prompts, defaults, lists, "Configurações do Carimbo (Texto 3D)")
         return unless results
-        save_settings({ fontName: results[0], fontSize: results[1].to_f, offsetX: results[2].to_f, offsetY: results[3].to_f })
+
+        # Converte label de volta para key
+        selected_corner = corner_options.key(results[4]) || "bottom_left"
+
+        save_settings({
+          fontName: results[0],
+          fontSize: results[1].to_f,
+          offsetX: results[2].to_f,
+          offsetY: results[3].to_f,
+          corner: selected_corner
+        })
         UI.messagebox("Configurações salvas!")
       end
       
@@ -86,9 +108,30 @@ module Rjv
         target_entities = parent_definition.entities
 
         bounds = top_face.bounds
-        min_pt_on_plane = bounds.min.project_to_plane(top_face.plane)
-        offset_vector = Geom::Vector3d.new(settings[:offsetX].mm, settings[:offsetY].mm, 0)
-        insertion_point = min_pt_on_plane.offset(offset_vector)
+
+        # ✅ CALCULA PONTO BASE CONFORME O CANTO ESCOLHIDO
+        corner = settings[:corner] || "bottom_left"
+        base_pt = case corner
+                  when "bottom_left"
+                    bounds.min  # canto inferior esquerdo
+                  when "bottom_right"
+                    Geom::Point3d.new(bounds.max.x, bounds.min.y, bounds.min.z)
+                  when "top_left"
+                    Geom::Point3d.new(bounds.min.x, bounds.max.y, bounds.min.z)
+                  when "top_right"
+                    Geom::Point3d.new(bounds.max.x, bounds.max.y, bounds.min.z)
+                  else
+                    bounds.min  # fallback para canto inferior esquerdo
+                  end
+
+        base_pt_on_plane = base_pt.project_to_plane(top_face.plane)
+
+        # Ajusta o offset conforme o canto (inverte X/Y para cantos superiores/direitos)
+        offset_x = corner.include?("right") ? -settings[:offsetX].mm : settings[:offsetX].mm
+        offset_y = corner.include?("top") ? -settings[:offsetY].mm : settings[:offsetY].mm
+
+        offset_vector = Geom::Vector3d.new(offset_x, offset_y, 0)
+        insertion_point = base_pt_on_plane.offset(offset_vector)
         transform = Geom::Transformation.translation(insertion_point)
         
         new_stamp_group = target_entities.add_group
