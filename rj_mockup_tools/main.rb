@@ -15,8 +15,9 @@ module Rjv
       # Sistemas essenciais
       require_relative 'lib/makettepro_toolbars'
       require_relative 'lib/menus'
-      
+
       # ✅ Módulos que outros módulos dependem (carrega no início)
+      require_relative 'lib/interactive_selection_tool'  # ✅ Base class para seleção interativa
       require_relative 'lib/face_to_board_improved'
       require_relative 'lib/reset_ucs_improved'
       require_relative 'lib/component_axes_reset'
@@ -28,6 +29,7 @@ module Rjv
 
       # Marca como já carregados
       @loaded_modules = {
+        'InteractiveSelectionTool' => true,
         'FaceToBoard' => true,
         'ResetUCS' => true,
         'IntelligentWorkflow' => true,

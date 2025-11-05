@@ -1,5 +1,6 @@
 # encoding: UTF-8
 require 'sketchup.rb'
+require_relative 'interactive_selection_tool'
 
 module Rjv
   module MockupTools
@@ -9,15 +10,43 @@ module Rjv
       LAYER_NAME = "MU_Impressão_3D".freeze
       LAYER_COLOR = Sketchup::Color.new(128, 0, 128)  # Roxo/Purple
 
+      # Interactive tool class for Apply3DPrint
+      class Apply3DPrintTool < InteractiveSelectionTool
+
+        def initialize
+          filter = ->(entity) {
+            entity.valid? &&
+            (entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance))
+          }
+          super("Aplicar Impressão 3D", filter)
+        end
+
+        def execute_on_selection(entities, model)
+          Apply3DPrint.apply_to_entities(entities, model)
+        end
+
+      end
+
+      # Main entry point - supports both pre-selection and interactive selection
       def run
         model = Sketchup.active_model
-        selection = model.selection
+        selection = model.selection.to_a.select do |e|
+          e.valid? && (e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance))
+        end
 
         if selection.empty?
-          UI.messagebox("Selecione um ou mais objetos para aplicar 'Impressão 3D'")
+          # No valid pre-selection, activate interactive tool
+          puts "Aplicar Impressão 3D: Ativando modo de seleção interativa"
+          model.select_tool(Apply3DPrintTool.new)
           return
         end
 
+        # Has pre-selection, apply directly
+        apply_to_entities(selection, model)
+      end
+
+      # Core logic - applies 3D print layer and attributes to entities
+      def apply_to_entities(entities, model)
         model.start_operation("Aplicar Impressão 3D", true)
 
         begin
@@ -31,7 +60,7 @@ module Rjv
 
           count = 0
 
-          selection.each do |entity|
+          entities.each do |entity|
             next unless entity.is_a?(Sketchup::ComponentInstance) || entity.is_a?(Sketchup::Group)
             next unless entity.valid?
 

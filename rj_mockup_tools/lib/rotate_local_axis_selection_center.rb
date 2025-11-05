@@ -2,6 +2,7 @@
 # Mockup Tools RJV - Rotate 90 Local Axis / Selection Center
 
 require 'sketchup.rb'
+require_relative 'interactive_selection_tool'
 
 module Rjv
   module MockupTools
@@ -12,6 +13,51 @@ module Rjv
       GLOBAL_X_AXIS = Geom::Vector3d.new(1, 0, 0).freeze
       GLOBAL_Y_AXIS = Geom::Vector3d.new(0, 1, 0).freeze
       GLOBAL_Z_AXIS = Geom::Vector3d.new(0, 0, 1).freeze
+
+      # Interactive tool for X rotation
+      class RotateXTool < InteractiveSelectionTool
+        def initialize
+          filter = ->(entity) {
+            entity.valid? &&
+            (entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance))
+          }
+          super("Rotacionar Eixo X +90°", filter)
+        end
+
+        def execute_on_selection(entities, model)
+          RotateLocalAxisSelectionCenter.perform_rotation_x(entities, model)
+        end
+      end
+
+      # Interactive tool for Y rotation
+      class RotateYTool < InteractiveSelectionTool
+        def initialize
+          filter = ->(entity) {
+            entity.valid? &&
+            (entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance))
+          }
+          super("Rotacionar Eixo Y +90°", filter)
+        end
+
+        def execute_on_selection(entities, model)
+          RotateLocalAxisSelectionCenter.perform_rotation_y(entities, model)
+        end
+      end
+
+      # Interactive tool for Z rotation
+      class RotateZTool < InteractiveSelectionTool
+        def initialize
+          filter = ->(entity) {
+            entity.valid? &&
+            (entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance))
+          }
+          super("Rotacionar Eixo Z +90°", filter)
+        end
+
+        def execute_on_selection(entities, model)
+          RotateLocalAxisSelectionCenter.perform_rotation_z(entities, model)
+        end
+      end
 
       # --- Método Auxiliar Comum ---
       private_class_method def self.get_selection_and_center(model)
@@ -52,14 +98,28 @@ module Rjv
         return false
       end
 
-      # --- Rotacionar em torno do Eixo X (Local ou Global) ---
+      # --- Entry point for X rotation (supports both workflows) ---
       def self.rotate_local_x
         model = Sketchup.active_model
         selection, center = get_selection_and_center(model)
-        unless selection && center
-          UI.messagebox("Selecione um ou mais Grupos/Componentes válidos.")
+
+        if selection.nil? || center.nil?
+          # No valid pre-selection, activate interactive tool
+          puts "Rotação X: Ativando modo de seleção interativa"
+          model.select_tool(RotateXTool.new)
           return
         end
+
+        # Has pre-selection, perform rotation directly
+        perform_rotation_x(selection, model)
+      end
+
+      # --- Core logic for X rotation ---
+      def self.perform_rotation_x(entities, model)
+        # Calculate center
+        total_bounds = Geom::BoundingBox.new
+        entities.each { |e| total_bounds.add(e.bounds) if e.respond_to?(:bounds) && !e.bounds.empty? }
+        center = total_bounds.center
 
         # Detecta se Shift está pressionado
         use_global = shift_pressed?
@@ -71,7 +131,7 @@ module Rjv
           puts "Rotacionando em torno do Eixo X GLOBAL no Centro da Seleção: #{center.inspect}"
         else
           # Usa eixo X local da primeira entidade
-          reference_entity = selection.first
+          reference_entity = entities.first
           rotation_axis = reference_entity.transformation.xaxis rescue nil
           unless rotation_axis && rotation_axis.valid? && rotation_axis.length > 1e-6
               UI.messagebox("Não foi possível obter o eixo X local da primeira entidade selecionada.")
@@ -83,15 +143,32 @@ module Rjv
 
         model.start_operation(operation_name, true)
         transformation = Geom::Transformation.rotation(center, rotation_axis, ROTATION_ANGLE)
-        model.active_entities.transform_entities(transformation, selection)
+        model.active_entities.transform_entities(transformation, entities)
         model.commit_operation
       end
 
-      # --- Rotacionar em torno do Eixo Y (Local ou Global) ---
+      # --- Entry point for Y rotation (supports both workflows) ---
       def self.rotate_local_y
         model = Sketchup.active_model
         selection, center = get_selection_and_center(model)
-        unless selection && center; UI.messagebox("Selecione Grupo(s)/Componente(s)."); return; end
+
+        if selection.nil? || center.nil?
+          # No valid pre-selection, activate interactive tool
+          puts "Rotação Y: Ativando modo de seleção interativa"
+          model.select_tool(RotateYTool.new)
+          return
+        end
+
+        # Has pre-selection, perform rotation directly
+        perform_rotation_y(selection, model)
+      end
+
+      # --- Core logic for Y rotation ---
+      def self.perform_rotation_y(entities, model)
+        # Calculate center
+        total_bounds = Geom::BoundingBox.new
+        entities.each { |e| total_bounds.add(e.bounds) if e.respond_to?(:bounds) && !e.bounds.empty? }
+        center = total_bounds.center
 
         # Detecta se Shift está pressionado
         use_global = shift_pressed?
@@ -103,7 +180,7 @@ module Rjv
           puts "Rotacionando em torno do Eixo Y GLOBAL no Centro da Seleção: #{center.inspect}"
         else
           # Usa eixo Y local da primeira entidade
-          reference_entity = selection.first
+          reference_entity = entities.first
           rotation_axis = reference_entity.transformation.yaxis rescue nil
           unless rotation_axis && rotation_axis.valid? && rotation_axis.length > 1e-6
               UI.messagebox("Não foi possível obter o eixo Y local da primeira entidade selecionada.")
@@ -115,15 +192,32 @@ module Rjv
 
         model.start_operation(operation_name, true)
         transformation = Geom::Transformation.rotation(center, rotation_axis, ROTATION_ANGLE)
-        model.active_entities.transform_entities(transformation, selection)
+        model.active_entities.transform_entities(transformation, entities)
         model.commit_operation
       end
 
-      # --- Rotacionar em torno do Eixo Z (Local ou Global) ---
+      # --- Entry point for Z rotation (supports both workflows) ---
       def self.rotate_local_z
         model = Sketchup.active_model
         selection, center = get_selection_and_center(model)
-        unless selection && center; UI.messagebox("Selecione Grupo(s)/Componente(s)."); return; end
+
+        if selection.nil? || center.nil?
+          # No valid pre-selection, activate interactive tool
+          puts "Rotação Z: Ativando modo de seleção interativa"
+          model.select_tool(RotateZTool.new)
+          return
+        end
+
+        # Has pre-selection, perform rotation directly
+        perform_rotation_z(selection, model)
+      end
+
+      # --- Core logic for Z rotation ---
+      def self.perform_rotation_z(entities, model)
+        # Calculate center
+        total_bounds = Geom::BoundingBox.new
+        entities.each { |e| total_bounds.add(e.bounds) if e.respond_to?(:bounds) && !e.bounds.empty? }
+        center = total_bounds.center
 
         # Detecta se Shift está pressionado
         use_global = shift_pressed?
@@ -135,7 +229,7 @@ module Rjv
           puts "Rotacionando em torno do Eixo Z GLOBAL no Centro da Seleção: #{center.inspect}"
         else
           # Usa eixo Z local da primeira entidade
-          reference_entity = selection.first
+          reference_entity = entities.first
           rotation_axis = reference_entity.transformation.zaxis rescue nil
           unless rotation_axis && rotation_axis.valid? && rotation_axis.length > 1e-6
               UI.messagebox("Não foi possível obter o eixo Z local da primeira entidade selecionada.")
@@ -147,7 +241,7 @@ module Rjv
 
         model.start_operation(operation_name, true)
         transformation = Geom::Transformation.rotation(center, rotation_axis, ROTATION_ANGLE)
-        model.active_entities.transform_entities(transformation, selection)
+        model.active_entities.transform_entities(transformation, entities)
         model.commit_operation
       end
 
