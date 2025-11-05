@@ -8,6 +8,7 @@ module Rjv
     # Base class for tools that support interactive selection
     # Subclasses should implement: execute_on_selection(entities, model)
     class InteractiveSelectionTool
+      VK_ESCAPE = 27
 
       def initialize(tool_name, filter_proc = nil)
         @tool_name = tool_name
@@ -86,9 +87,6 @@ module Rjv
 
       # Key down handler - Escape to cancel
       def onKeyDown(key, repeat, flags, view)
-        # SketchUp key codes
-        VK_ESCAPE = 27
-
         case key
         when VK_ESCAPE
           # Escape: cancel

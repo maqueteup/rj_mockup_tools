@@ -9,6 +9,7 @@ module Rjv
 
     # Ferramenta de seleção interativa para Renomear
     class RenameSelectionTool
+      VK_ESCAPE = 27
 
       def initialize(dialog, selection_array)
         @dialog = dialog
@@ -43,7 +44,6 @@ module Rjv
       end
 
       def onKeyDown(key, repeat, flags, view)
-        VK_ESCAPE = 27
         if key == VK_ESCAPE
           puts "Seleção finalizada: #{@selection.length} objeto(s)"
           @model.select_tool(nil)
