@@ -14,48 +14,291 @@ module Rjv
       GLOBAL_Y_AXIS = Geom::Vector3d.new(0, 1, 0).freeze
       GLOBAL_Z_AXIS = Geom::Vector3d.new(0, 0, 1).freeze
 
-      # Interactive tool for X rotation
-      class RotateXTool < InteractiveSelectionTool
+      # Interactive tool for X rotation (continuous mode)
+      class RotateXTool
+        VK_ESCAPE = 27
+
         def initialize
-          filter = ->(entity) {
-            entity.valid? &&
-            (entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance))
-          }
-          super("Rotacionar Eixo X +90°", filter)
+          @axis = :x
+          @axis_color = 'red'
+          @last_clicked = []
         end
 
-        def execute_on_selection(entities, model)
-          RotateLocalAxisSelectionCenter.perform_rotation_x(entities, model)
+        def activate
+          @model = Sketchup.active_model
+          @view = @model.active_view
+          Sketchup.status_text = "Rotação X: Clique nos objetos (Shift = global, Esc = sair)"
+          puts "Rotação X contínua ativada"
+        end
+
+        def deactivate(view)
+          view.invalidate
+        end
+
+        def onLButtonDown(flags, x, y, view)
+          ph = view.pick_helper
+          ph.do_pick(x, y)
+          picked = ph.best_picked
+
+          return unless picked
+          return unless picked.is_a?(Sketchup::Group) || picked.is_a?(Sketchup::ComponentInstance)
+
+          # Executa rotação
+          RotateLocalAxisSelectionCenter.perform_rotation_x([picked], @model)
+
+          # Marca como último clicado para feedback visual
+          @last_clicked = [picked]
+          @view.invalidate
+
+          # Limpa o feedback após 0.3s
+          UI.start_timer(0.3, false) do
+            @last_clicked = []
+            @view.invalidate if @view && @view.valid?
+          end
+        end
+
+        def onKeyDown(key, repeat, flags, view)
+          if key == VK_ESCAPE
+            puts "Rotação X: Cancelado"
+            @model.select_tool(nil)
+            return true
+          end
+          false
+        end
+
+        def draw(view)
+          # Desenha círculo vermelho no centro do último objeto clicado
+          return if @last_clicked.empty?
+
+          @last_clicked.each do |entity|
+            next unless entity.valid?
+
+            bounds = entity.bounds
+            center = bounds.center
+
+            # Desenha círculo grande vermelho no plano YZ
+            draw_circle_x(view, center, 100, @axis_color)
+          end
+        end
+
+        def draw_circle_x(view, center, radius, color)
+          # Círculo no plano YZ (perpendicular ao eixo X)
+          points = []
+          segments = 36
+          segments.times do |i|
+            angle = (i.to_f / segments) * Math::PI * 2
+            offset = Geom::Vector3d.new(0, Math.cos(angle) * radius, Math.sin(angle) * radius)
+            points << center.offset(offset)
+          end
+          points << points.first
+
+          view.line_width = 4
+          view.drawing_color = color
+          view.draw(GL_LINE_STRIP, points)
+
+          # Seta indicando rotação +90°
+          arrow_angle = Math::PI / 2
+          arrow_point = center.offset(Geom::Vector3d.new(0, Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius))
+          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(0, -15, 10))
+          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(15, 0, 10))
+          view.line_width = 3
+          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
+        end
+
+        def onSetCursor
+          UI.set_cursor(0)
         end
       end
 
-      # Interactive tool for Y rotation
-      class RotateYTool < InteractiveSelectionTool
+      # Interactive tool for Y rotation (continuous mode)
+      class RotateYTool
+        VK_ESCAPE = 27
+
         def initialize
-          filter = ->(entity) {
-            entity.valid? &&
-            (entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance))
-          }
-          super("Rotacionar Eixo Y +90°", filter)
+          @axis = :y
+          @axis_color = 'green'
+          @last_clicked = []
         end
 
-        def execute_on_selection(entities, model)
-          RotateLocalAxisSelectionCenter.perform_rotation_y(entities, model)
+        def activate
+          @model = Sketchup.active_model
+          @view = @model.active_view
+          Sketchup.status_text = "Rotação Y: Clique nos objetos (Shift = global, Esc = sair)"
+          puts "Rotação Y contínua ativada"
+        end
+
+        def deactivate(view)
+          view.invalidate
+        end
+
+        def onLButtonDown(flags, x, y, view)
+          ph = view.pick_helper
+          ph.do_pick(x, y)
+          picked = ph.best_picked
+
+          return unless picked
+          return unless picked.is_a?(Sketchup::Group) || picked.is_a?(Sketchup::ComponentInstance)
+
+          # Executa rotação
+          RotateLocalAxisSelectionCenter.perform_rotation_y([picked], @model)
+
+          # Marca como último clicado para feedback visual
+          @last_clicked = [picked]
+          @view.invalidate
+
+          # Limpa o feedback após 0.3s
+          UI.start_timer(0.3, false) do
+            @last_clicked = []
+            @view.invalidate if @view && @view.valid?
+          end
+        end
+
+        def onKeyDown(key, repeat, flags, view)
+          if key == VK_ESCAPE
+            puts "Rotação Y: Cancelado"
+            @model.select_tool(nil)
+            return true
+          end
+          false
+        end
+
+        def draw(view)
+          # Desenha círculo verde no centro do último objeto clicado
+          return if @last_clicked.empty?
+
+          @last_clicked.each do |entity|
+            next unless entity.valid?
+
+            bounds = entity.bounds
+            center = bounds.center
+
+            # Desenha círculo grande verde no plano XZ
+            draw_circle_y(view, center, 100, @axis_color)
+          end
+        end
+
+        def draw_circle_y(view, center, radius, color)
+          # Círculo no plano XZ (perpendicular ao eixo Y)
+          points = []
+          segments = 36
+          segments.times do |i|
+            angle = (i.to_f / segments) * Math::PI * 2
+            offset = Geom::Vector3d.new(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
+            points << center.offset(offset)
+          end
+          points << points.first
+
+          view.line_width = 4
+          view.drawing_color = color
+          view.draw(GL_LINE_STRIP, points)
+
+          # Seta indicando rotação +90°
+          arrow_angle = Math::PI / 2
+          arrow_point = center.offset(Geom::Vector3d.new(Math.cos(arrow_angle) * radius, 0, Math.sin(arrow_angle) * radius))
+          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(-15, 0, 10))
+          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(0, 15, 10))
+          view.line_width = 3
+          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
+        end
+
+        def onSetCursor
+          UI.set_cursor(0)
         end
       end
 
-      # Interactive tool for Z rotation
-      class RotateZTool < InteractiveSelectionTool
+      # Interactive tool for Z rotation (continuous mode)
+      class RotateZTool
+        VK_ESCAPE = 27
+
         def initialize
-          filter = ->(entity) {
-            entity.valid? &&
-            (entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance))
-          }
-          super("Rotacionar Eixo Z +90°", filter)
+          @axis = :z
+          @axis_color = 'blue'
+          @last_clicked = []
         end
 
-        def execute_on_selection(entities, model)
-          RotateLocalAxisSelectionCenter.perform_rotation_z(entities, model)
+        def activate
+          @model = Sketchup.active_model
+          @view = @model.active_view
+          Sketchup.status_text = "Rotação Z: Clique nos objetos (Shift = global, Esc = sair)"
+          puts "Rotação Z contínua ativada"
+        end
+
+        def deactivate(view)
+          view.invalidate
+        end
+
+        def onLButtonDown(flags, x, y, view)
+          ph = view.pick_helper
+          ph.do_pick(x, y)
+          picked = ph.best_picked
+
+          return unless picked
+          return unless picked.is_a?(Sketchup::Group) || picked.is_a?(Sketchup::ComponentInstance)
+
+          # Executa rotação
+          RotateLocalAxisSelectionCenter.perform_rotation_z([picked], @model)
+
+          # Marca como último clicado para feedback visual
+          @last_clicked = [picked]
+          @view.invalidate
+
+          # Limpa o feedback após 0.3s
+          UI.start_timer(0.3, false) do
+            @last_clicked = []
+            @view.invalidate if @view && @view.valid?
+          end
+        end
+
+        def onKeyDown(key, repeat, flags, view)
+          if key == VK_ESCAPE
+            puts "Rotação Z: Cancelado"
+            @model.select_tool(nil)
+            return true
+          end
+          false
+        end
+
+        def draw(view)
+          # Desenha círculo azul no centro do último objeto clicado
+          return if @last_clicked.empty?
+
+          @last_clicked.each do |entity|
+            next unless entity.valid?
+
+            bounds = entity.bounds
+            center = bounds.center
+
+            # Desenha círculo grande azul no plano XY
+            draw_circle_z(view, center, 100, @axis_color)
+          end
+        end
+
+        def draw_circle_z(view, center, radius, color)
+          # Círculo no plano XY (perpendicular ao eixo Z)
+          points = []
+          segments = 36
+          segments.times do |i|
+            angle = (i.to_f / segments) * Math::PI * 2
+            offset = Geom::Vector3d.new(Math.cos(angle) * radius, Math.sin(angle) * radius, 0)
+            points << center.offset(offset)
+          end
+          points << points.first
+
+          view.line_width = 4
+          view.drawing_color = color
+          view.draw(GL_LINE_STRIP, points)
+
+          # Seta indicando rotação +90°
+          arrow_angle = 0  # Posição à direita do círculo
+          arrow_point = center.offset(Geom::Vector3d.new(Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius, 0))
+          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(10, -15, 0))
+          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(10, 0, 15))
+          view.line_width = 3
+          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
+        end
+
+        def onSetCursor
+          UI.set_cursor(0)
         end
       end
 

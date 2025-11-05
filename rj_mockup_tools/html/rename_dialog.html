@@ -303,6 +303,11 @@
             </select>
         </div>
 
+        <div class="checkbox-group" style="margin-top: 12px;">
+            <input type="checkbox" id="applyStamp" checked>
+            <label for="applyStamp" style="margin: 0; font-weight: normal;">Carimbar (aplica carimbo se não existir)</label>
+        </div>
+
         <div class="button-group">
             <button class="secondary" id="btnCancel">Cancelar</button>
             <button class="primary" id="btnApply">Aplicar</button>
@@ -325,19 +330,22 @@
             document.getElementById('seqType').value = settings.seqType || 'N';
             document.getElementById('startValue').value = settings.startValue || '1';
             document.getElementById('increment').value = settings.increment || 1;
-            
+
             // Modo de renomeação
             document.getElementById('nameMode').value = settings.nameMode || 'R';
             updateNameModePanel();
-            
+
             // Find/Replace
             document.getElementById('findText').value = settings.findText || '';
             document.getElementById('replaceText').value = settings.replaceText || '';
             document.getElementById('keepCase').checked = settings.keepCase !== false;
-            
+
             // Ordenação - atualiza o dropdown
             const sortMethod = settings.sortMethod || 'SEL';
             document.getElementById('sortMethodDropdown').value = sortMethod;
+
+            // Carimbar
+            document.getElementById('applyStamp').checked = settings.applyStamp !== false;
         }
         
         // Atualizar contagem de seleção
@@ -378,7 +386,8 @@
                 findText: document.getElementById('findText').value,
                 replaceText: document.getElementById('replaceText').value,
                 keepCase: document.getElementById('keepCase').checked,
-                sortMethod: document.getElementById('sortMethodDropdown').value
+                sortMethod: document.getElementById('sortMethodDropdown').value,
+                applyStamp: document.getElementById('applyStamp').checked
             };
 
             sketchup.save_settings(settings);

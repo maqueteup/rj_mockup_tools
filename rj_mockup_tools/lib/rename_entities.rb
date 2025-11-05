@@ -41,6 +41,9 @@ module Rjv
 
         # Atualiza o diálogo
         @dialog.execute_script("updateSelectionCount(#{@selection.length});")
+
+        # Invalida a view para redesenhar com novo número
+        @view.invalidate
       end
 
       def onKeyDown(key, repeat, flags, view)
@@ -50,6 +53,28 @@ module Rjv
           return true
         end
         false
+      end
+
+      def draw(view)
+        # Desenha números sequenciais no centro Z+ de cada peça selecionada
+        @selection.each_with_index do |entity, index|
+          next unless entity.valid?
+
+          # Calcula o centro do bounding box
+          bounds = entity.bounds
+          center = bounds.center
+
+          # Ponto no topo (Z+)
+          top_point = Geom::Point3d.new(center.x, center.y, bounds.max.z)
+
+          # Desenha o número grande
+          view.draw_text(top_point, (index + 1).to_s, {
+            size: 48,
+            bold: true,
+            color: 'red',
+            align: SketchUp::TextAlignCenter
+          })
+        end
       end
 
       def onSetCursor
@@ -198,11 +223,17 @@ module Rjv
           current_name = target_object.name || ""
           prompt_text = "Novo nome Definição '#{current_name || '(S/N)'}':"
         end
-        prompts = [prompt_text]
-        defaults = [current_name]
-        input = UI.inputbox(prompts, defaults, "Renomear")
+
+        # Adicionar opção de carimbar para renomeação individual
+        prompts = [prompt_text, "Carimbar?"]
+        defaults = [current_name, "Sim"]
+        list = ["", "Sim|Não"]
+        input = UI.inputbox(prompts, defaults, list, "Renomear")
         return unless input
+
         new_name = input[0].strip
+        apply_stamp = input[1] == "Sim"
+
         if new_name == current_name
           Sketchup.status_text = "Nome não alterado."
           return
@@ -215,7 +246,27 @@ module Rjv
         model.start_operation(op_name, true)
         begin
           if target_object.valid?
+            # Verificar se tem carimbo antes de renomear
+            had_stamp = false
+            if is_definition
+              had_stamp = has_stamp?(target_object)
+              if had_stamp
+                remove_stamps(target_object)
+              end
+            end
+
+            # Renomear
             target_object.name = new_name
+
+            # Reaplicar ou aplicar novo carimbo
+            if is_definition
+              if had_stamp
+                reapply_stamp(target_object)
+              elsif apply_stamp
+                reapply_stamp(target_object)
+              end
+            end
+
             model.commit_operation
             Sketchup.status_text = "#{op_name.split.last} '#{new_name}'."
           else
@@ -267,6 +318,7 @@ module Rjv
                find_text = settings["findText"] || ""
                replace_text = settings["replaceText"] || ""
                keep_case = settings["keepCase"] == true
+               apply_stamp = settings["applyStamp"] != false
 
                sv = nil
                if seq_type == "N"; begin; sv = Integer(sv_raw); rescue; sv = 1; end
@@ -282,7 +334,8 @@ module Rjv
                    nameMode: name_mode,
                    findText: find_text,
                    replaceText: replace_text,
-                   keepCase: keep_case
+                   keepCase: keep_case,
+                   applyStamp: apply_stamp
                }.freeze
 
                dialog.close
@@ -402,10 +455,17 @@ module Rjv
                      if isd; existing_def_names << new_name; rdb.add(target_object); end
                      puts "   + Renomeado: '#{cn || '(S/N)'}' -> '#{new_name}'"
 
-                     # Reaplicar carimbo se tinha
-                     if had_stamp
-                       if reapply_stamp(target_object)
-                         puts "     + Carimbo reaplicado"
+                     # Reaplicar ou aplicar novo carimbo
+                     if isd
+                       if had_stamp
+                         if reapply_stamp(target_object)
+                           puts "     + Carimbo reaplicado"
+                         end
+                       elsif settings[:applyStamp]
+                         # Não tinha carimbo, mas usuário quer aplicar
+                         if reapply_stamp(target_object)
+                           puts "     + Carimbo aplicado"
+                         end
                        end
                      end
                  rescue => re
