@@ -188,6 +188,16 @@ module Rjv
         def onSetCursor
           UI.set_cursor(0)
         end
+
+        def getExtents
+          bb = Sketchup.active_model.bounds
+          if @last_clicked && !@last_clicked.empty?
+            @last_clicked.each do |entity|
+              bb.add(entity.bounds) if entity.valid?
+            end
+          end
+          bb
+        end
       end
 
       # Interactive tool for Y rotation (continuous mode)
@@ -357,6 +367,16 @@ module Rjv
         def onSetCursor
           UI.set_cursor(0)
         end
+
+        def getExtents
+          bb = Sketchup.active_model.bounds
+          if @last_clicked && !@last_clicked.empty?
+            @last_clicked.each do |entity|
+              bb.add(entity.bounds) if entity.valid?
+            end
+          end
+          bb
+        end
       end
 
       # Interactive tool for Z rotation (continuous mode)
@@ -525,6 +545,16 @@ module Rjv
 
         def onSetCursor
           UI.set_cursor(0)
+        end
+
+        def getExtents
+          bb = Sketchup.active_model.bounds
+          if @last_clicked && !@last_clicked.empty?
+            @last_clicked.each do |entity|
+              bb.add(entity.bounds) if entity.valid?
+            end
+          end
+          bb
         end
       end
 

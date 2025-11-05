@@ -101,6 +101,16 @@ module Rjv
       def onSetCursor
         UI.set_cursor(0)
       end
+
+      def getExtents
+        bb = Sketchup.active_model.bounds
+        if @selection && !@selection.empty?
+          @selection.each do |entity|
+            bb.add(entity.bounds) if entity.valid?
+          end
+        end
+        bb
+      end
     end
 
     module RenameEntities
