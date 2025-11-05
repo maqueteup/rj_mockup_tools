@@ -18,17 +18,39 @@ module Rjv
       class RotateXTool
         VK_ESCAPE = 27
 
-        def initialize
+        def initialize(preselected_entities = nil)
           @axis = :x
           @axis_color = 'red'
           @last_clicked = []
+          @preselected = preselected_entities
         end
 
         def activate
           @model = Sketchup.active_model
           @view = @model.active_view
-          Sketchup.status_text = "Rotação X: Clique nos objetos (Shift = global, Esc = sair)"
-          puts "Rotação X contínua ativada"
+
+          # Se houver pré-seleção, executa e mostra feedback
+          if @preselected && !@preselected.empty?
+            puts "Rotação X: Executando em #{@preselected.length} objeto(s) pré-selecionado(s)"
+            Sketchup.status_text = "Rotação X: Executando..."
+
+            # Mostra feedback
+            @last_clicked = @preselected.dup
+            @view.invalidate
+
+            # Executa rotação
+            RotateLocalAxisSelectionCenter.perform_rotation_x(@preselected, @model)
+
+            # Limpa feedback e sai da ferramenta após 0.5s
+            UI.start_timer(0.5, false) do
+              @last_clicked = []
+              @model.select_tool(nil) if @model
+            end
+          else
+            # Modo interativo normal
+            Sketchup.status_text = "Rotação X: Clique nos objetos (Shift = global, Esc = sair)"
+            puts "Rotação X contínua ativada"
+          end
         end
 
         def deactivate(view)
@@ -70,6 +92,9 @@ module Rjv
           # Desenha círculo vermelho no centro do último objeto clicado
           return if @last_clicked.empty?
 
+          # Detecta se Shift está pressionado
+          use_global = RotateLocalAxisSelectionCenter.shift_pressed?
+
           @last_clicked.each do |entity|
             next unless entity.valid?
 
@@ -86,12 +111,16 @@ module Rjv
             diagonal = local_bounds.diagonal
             radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
 
-            # Desenha círculo vermelho no plano YZ local
-            draw_circle_x(view, entity, local_center, radius, @axis_color)
+            # Desenha círculo vermelho no plano YZ (local ou global)
+            if use_global
+              draw_circle_x_global(view, entity, radius, @axis_color)
+            else
+              draw_circle_x_local(view, entity, local_center, radius, @axis_color)
+            end
           end
         end
 
-        def draw_circle_x(view, entity, local_center, radius, color)
+        def draw_circle_x_local(view, entity, local_center, radius, color)
           transformation = entity.transformation
 
           # Círculo no plano YZ local (perpendicular ao eixo X local)
@@ -127,6 +156,35 @@ module Rjv
           view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end
 
+        def draw_circle_x_global(view, entity, radius, color)
+          # Centro global da entidade
+          bounds = entity.bounds
+          center = bounds.center
+
+          # Círculo no plano YZ GLOBAL (perpendicular ao eixo X global)
+          points = []
+          segments = 36
+          segments.times do |i|
+            angle = (i.to_f / segments) * Math::PI * 2
+            # Offset em coordenadas globais
+            offset = Geom::Vector3d.new(0, Math.cos(angle) * radius, Math.sin(angle) * radius)
+            points << center.offset(offset)
+          end
+          points << points.first
+
+          view.line_width = 4
+          view.drawing_color = color
+          view.draw(GL_LINE_STRIP, points)
+
+          # Seta indicando rotação +90°
+          arrow_angle = Math::PI / 2
+          arrow_point = center.offset(Geom::Vector3d.new(0, Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius))
+          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(0, -15, 10))
+          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(15, 0, 10))
+          view.line_width = 3
+          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
+        end
+
         def onSetCursor
           UI.set_cursor(0)
         end
@@ -136,17 +194,32 @@ module Rjv
       class RotateYTool
         VK_ESCAPE = 27
 
-        def initialize
+        def initialize(preselected_entities = nil)
           @axis = :y
           @axis_color = 'green'
           @last_clicked = []
+          @preselected = preselected_entities
         end
 
         def activate
           @model = Sketchup.active_model
           @view = @model.active_view
-          Sketchup.status_text = "Rotação Y: Clique nos objetos (Shift = global, Esc = sair)"
-          puts "Rotação Y contínua ativada"
+
+          # Se houver pré-seleção, executa e mostra feedback
+          if @preselected && !@preselected.empty?
+            puts "Rotação Y: Executando em #{@preselected.length} objeto(s) pré-selecionado(s)"
+            Sketchup.status_text = "Rotação Y: Executando..."
+            @last_clicked = @preselected.dup
+            @view.invalidate
+            RotateLocalAxisSelectionCenter.perform_rotation_y(@preselected, @model)
+            UI.start_timer(0.5, false) do
+              @last_clicked = []
+              @model.select_tool(nil) if @model
+            end
+          else
+            Sketchup.status_text = "Rotação Y: Clique nos objetos (Shift = global, Esc = sair)"
+            puts "Rotação Y contínua ativada"
+          end
         end
 
         def deactivate(view)
@@ -188,6 +261,9 @@ module Rjv
           # Desenha círculo verde no centro do último objeto clicado
           return if @last_clicked.empty?
 
+          # Detecta se Shift está pressionado
+          use_global = RotateLocalAxisSelectionCenter.shift_pressed?
+
           @last_clicked.each do |entity|
             next unless entity.valid?
 
@@ -204,12 +280,16 @@ module Rjv
             diagonal = local_bounds.diagonal
             radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
 
-            # Desenha círculo verde no plano XZ local
-            draw_circle_y(view, entity, local_center, radius, @axis_color)
+            # Desenha círculo verde no plano XZ (local ou global)
+            if use_global
+              draw_circle_y_global(view, entity, radius, @axis_color)
+            else
+              draw_circle_y_local(view, entity, local_center, radius, @axis_color)
+            end
           end
         end
 
-        def draw_circle_y(view, entity, local_center, radius, color)
+        def draw_circle_y_local(view, entity, local_center, radius, color)
           transformation = entity.transformation
 
           # Círculo no plano XZ local (perpendicular ao eixo Y local)
@@ -245,6 +325,35 @@ module Rjv
           view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end
 
+        def draw_circle_y_global(view, entity, radius, color)
+          # Centro global da entidade
+          bounds = entity.bounds
+          center = bounds.center
+
+          # Círculo no plano XZ GLOBAL (perpendicular ao eixo Y global)
+          points = []
+          segments = 36
+          segments.times do |i|
+            angle = (i.to_f / segments) * Math::PI * 2
+            # Offset em coordenadas globais
+            offset = Geom::Vector3d.new(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
+            points << center.offset(offset)
+          end
+          points << points.first
+
+          view.line_width = 4
+          view.drawing_color = color
+          view.draw(GL_LINE_STRIP, points)
+
+          # Seta indicando rotação +90°
+          arrow_angle = Math::PI / 2
+          arrow_point = center.offset(Geom::Vector3d.new(Math.cos(arrow_angle) * radius, 0, Math.sin(arrow_angle) * radius))
+          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(-15, 0, 10))
+          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(0, 15, 10))
+          view.line_width = 3
+          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
+        end
+
         def onSetCursor
           UI.set_cursor(0)
         end
@@ -254,17 +363,32 @@ module Rjv
       class RotateZTool
         VK_ESCAPE = 27
 
-        def initialize
+        def initialize(preselected_entities = nil)
           @axis = :z
           @axis_color = 'blue'
           @last_clicked = []
+          @preselected = preselected_entities
         end
 
         def activate
           @model = Sketchup.active_model
           @view = @model.active_view
-          Sketchup.status_text = "Rotação Z: Clique nos objetos (Shift = global, Esc = sair)"
-          puts "Rotação Z contínua ativada"
+
+          # Se houver pré-seleção, executa e mostra feedback
+          if @preselected && !@preselected.empty?
+            puts "Rotação Z: Executando em #{@preselected.length} objeto(s) pré-selecionado(s)"
+            Sketchup.status_text = "Rotação Z: Executando..."
+            @last_clicked = @preselected.dup
+            @view.invalidate
+            RotateLocalAxisSelectionCenter.perform_rotation_z(@preselected, @model)
+            UI.start_timer(0.5, false) do
+              @last_clicked = []
+              @model.select_tool(nil) if @model
+            end
+          else
+            Sketchup.status_text = "Rotação Z: Clique nos objetos (Shift = global, Esc = sair)"
+            puts "Rotação Z contínua ativada"
+          end
         end
 
         def deactivate(view)
@@ -306,6 +430,9 @@ module Rjv
           # Desenha círculo azul no centro do último objeto clicado
           return if @last_clicked.empty?
 
+          # Detecta se Shift está pressionado
+          use_global = RotateLocalAxisSelectionCenter.shift_pressed?
+
           @last_clicked.each do |entity|
             next unless entity.valid?
 
@@ -322,12 +449,16 @@ module Rjv
             diagonal = local_bounds.diagonal
             radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
 
-            # Desenha círculo azul no plano XY local
-            draw_circle_z(view, entity, local_center, radius, @axis_color)
+            # Desenha círculo azul no plano XY (local ou global)
+            if use_global
+              draw_circle_z_global(view, entity, radius, @axis_color)
+            else
+              draw_circle_z_local(view, entity, local_center, radius, @axis_color)
+            end
           end
         end
 
-        def draw_circle_z(view, entity, local_center, radius, color)
+        def draw_circle_z_local(view, entity, local_center, radius, color)
           transformation = entity.transformation
 
           # Círculo no plano XY local (perpendicular ao eixo Z local)
@@ -359,6 +490,35 @@ module Rjv
           arrow_head1 = arrow_point + transformation.xaxis * local_arrow_dir1.x + transformation.yaxis * local_arrow_dir1.y + transformation.zaxis * local_arrow_dir1.z
           arrow_head2 = arrow_point + transformation.xaxis * local_arrow_dir2.x + transformation.yaxis * local_arrow_dir2.y + transformation.zaxis * local_arrow_dir2.z
 
+          view.line_width = 3
+          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
+        end
+
+        def draw_circle_z_global(view, entity, radius, color)
+          # Centro global da entidade
+          bounds = entity.bounds
+          center = bounds.center
+
+          # Círculo no plano XY GLOBAL (perpendicular ao eixo Z global)
+          points = []
+          segments = 36
+          segments.times do |i|
+            angle = (i.to_f / segments) * Math::PI * 2
+            # Offset em coordenadas globais
+            offset = Geom::Vector3d.new(Math.cos(angle) * radius, Math.sin(angle) * radius, 0)
+            points << center.offset(offset)
+          end
+          points << points.first
+
+          view.line_width = 4
+          view.drawing_color = color
+          view.draw(GL_LINE_STRIP, points)
+
+          # Seta indicando rotação +90°
+          arrow_angle = 0
+          arrow_point = center.offset(Geom::Vector3d.new(Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius, 0))
+          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(10, -15, 0))
+          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(10, 0, 15))
           view.line_width = 3
           view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end
@@ -416,11 +576,10 @@ module Rjv
           # No valid pre-selection, activate interactive tool
           puts "Rotação X: Ativando modo de seleção interativa"
           model.select_tool(RotateXTool.new)
-          return
+        else
+          # Has pre-selection, activate tool with preselection (shows feedback)
+          model.select_tool(RotateXTool.new(selection))
         end
-
-        # Has pre-selection, perform rotation directly
-        perform_rotation_x(selection, model)
       end
 
       # --- Core logic for X rotation ---
@@ -465,11 +624,10 @@ module Rjv
           # No valid pre-selection, activate interactive tool
           puts "Rotação Y: Ativando modo de seleção interativa"
           model.select_tool(RotateYTool.new)
-          return
+        else
+          # Has pre-selection, activate tool with preselection (shows feedback)
+          model.select_tool(RotateYTool.new(selection))
         end
-
-        # Has pre-selection, perform rotation directly
-        perform_rotation_y(selection, model)
       end
 
       # --- Core logic for Y rotation ---
@@ -514,11 +672,10 @@ module Rjv
           # No valid pre-selection, activate interactive tool
           puts "Rotação Z: Ativando modo de seleção interativa"
           model.select_tool(RotateZTool.new)
-          return
+        else
+          # Has pre-selection, activate tool with preselection (shows feedback)
+          model.select_tool(RotateZTool.new(selection))
         end
-
-        # Has pre-selection, perform rotation directly
-        perform_rotation_z(selection, model)
       end
 
       # --- Core logic for Z rotation ---

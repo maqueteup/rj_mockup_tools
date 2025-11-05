@@ -63,7 +63,7 @@ module Rjv
       end
 
       def draw(view)
-        # Desenha números sequenciais no centro da peça, no topo do plano XY local
+        # Desenha números sequenciais no centro XY local, no topo Z+ de cada peça
         @selection.each_with_index do |entity, index|
           next unless entity.valid?
 
@@ -77,20 +77,24 @@ module Rjv
             local_bounds = entity.entities.bounds rescue entity.bounds
           end
 
-          # Centro do bounds local
+          # Centro do bounds local (XY do centro do bounds)
           local_center = local_bounds.center
 
           # Altura máxima Z local
           local_top_z = local_bounds.max.z
 
-          # Ponto no centro XY local, no topo Z local
+          # Ponto no centro XY do bounds local, no topo Z local
           local_top_point = Geom::Point3d.new(local_center.x, local_center.y, local_top_z)
 
           # Transforma para coordenadas globais
           global_point = transformation * local_top_point
 
+          # Tamanho do texto proporcional à peça (baseado na diagonal)
+          diagonal = local_bounds.diagonal
+          text_size = [diagonal * 0.3, 24].max.to_i  # 30% da diagonal, mínimo 24
+
           # Desenha o número grande em vermelho
-          view.draw_text(global_point, (index + 1).to_s, size: 48, bold: true, color: 'red')
+          view.draw_text(global_point, (index + 1).to_s, size: text_size, bold: true, color: 'red')
         end
       end
 
