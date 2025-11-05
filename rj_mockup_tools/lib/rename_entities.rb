@@ -67,13 +67,8 @@ module Rjv
           # Ponto no topo (Z+)
           top_point = Geom::Point3d.new(center.x, center.y, bounds.max.z)
 
-          # Desenha o número grande
-          view.draw_text(top_point, (index + 1).to_s, {
-            size: 48,
-            bold: true,
-            color: 'red',
-            align: SketchUp::TextAlignCenter
-          })
+          # Desenha o número grande em vermelho
+          view.draw_text(top_point, (index + 1).to_s, size: 48, bold: true, color: 'red')
         end
       end
 

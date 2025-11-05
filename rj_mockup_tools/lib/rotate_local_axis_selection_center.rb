@@ -53,7 +53,7 @@ module Rjv
           # Limpa o feedback após 0.3s
           UI.start_timer(0.3, false) do
             @last_clicked = []
-            @view.invalidate if @view && @view.valid?
+            @view.invalidate if @view
           end
         end
 
@@ -149,7 +149,7 @@ module Rjv
           # Limpa o feedback após 0.3s
           UI.start_timer(0.3, false) do
             @last_clicked = []
-            @view.invalidate if @view && @view.valid?
+            @view.invalidate if @view
           end
         end
 
@@ -245,7 +245,7 @@ module Rjv
           # Limpa o feedback após 0.3s
           UI.start_timer(0.3, false) do
             @last_clicked = []
-            @view.invalidate if @view && @view.valid?
+            @view.invalidate if @view
           end
         end
 
