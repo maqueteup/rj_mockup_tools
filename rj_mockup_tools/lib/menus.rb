@@ -11,34 +11,24 @@ module Rjv
         # ===== MODELAGEM =====
         model_submenu = mockup_submenu.add_submenu("Modelagem")
         
-        model_submenu.add_item("Criar Painel Dividido...") { 
+        model_submenu.add_item("Criar Painel Dividido...") {
           Rjv::MockupTools.ensure_loaded('PanelDividerTool')
-          Rjv::MockupTools.activate_panel_divider_tool 
+          Rjv::MockupTools.activate_panel_divider_tool
         }
-        
-        model_submenu.add_item("Placa a partir da Face") { 
-          # FaceToBoard já está carregado no início
-          Rjv::MockupTools::FaceToBoard.run 
-        }
-        
-        model_submenu.add_item("Resetar Eixos (UCS)") { 
+
+        model_submenu.add_item("Resetar Eixos (UCS)") {
           # ResetUCS já está carregado no início
-          Rjv::MockupTools::ResetUCS.run 
+          Rjv::MockupTools::ResetUCS.run
         }
-        
-        model_submenu.add_item("Inverter Eixo Z (UCS)") { 
+
+        model_submenu.add_item("Inverter Eixo Z (UCS)") {
           Rjv::MockupTools.ensure_loaded('FlipUCS')
-          Rjv::MockupTools::FlipUCS.run 
+          Rjv::MockupTools::FlipUCS.run
         }
-        
-        model_submenu.add_item("Renomear Entidades...") { 
+
+        model_submenu.add_item("Renomear Entidades...") {
           Rjv::MockupTools.ensure_loaded('RenameEntities')
-          Rjv::MockupTools::RenameEntities.run 
-        }
-        
-        model_submenu.add_item("Grupo para Componente") { 
-          Rjv::MockupTools.ensure_loaded('GroupToComponent')
-          Rjv::MockupTools::GroupToComponent.run 
+          Rjv::MockupTools::RenameEntities.run
         }
        
         stretch_submenu = model_submenu.add_submenu("🔧 Stretch Tools")

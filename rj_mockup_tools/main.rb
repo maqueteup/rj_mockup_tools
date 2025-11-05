@@ -24,14 +24,16 @@ module Rjv
       require_relative 'lib/intelligent_workflow'
       require_relative 'lib/material_manager_tool'
       require_relative 'lib/stamp_config_manager'  # ✅ ADICIONADO para StampName
-      
+      require_relative 'lib/group_to_component'    # ✅ Carrega GroupToComponent no início (mas oculto da UI)
+
       # Marca como já carregados
       @loaded_modules = {
         'FaceToBoard' => true,
         'ResetUCS' => true,
         'IntelligentWorkflow' => true,
         'MaterialSystem' => true,
-        'StampConfigManager' => true
+        'StampConfigManager' => true,
+        'GroupToComponent' => true
       }
       
       puts "✅ Módulos essenciais carregados"
@@ -44,14 +46,13 @@ module Rjv
     # ===== 📦 MAPA DE MÓDULOS (carregados sob demanda) =====
     MODULE_FILES = {
       # Módulos já carregados no início (não precisam de lazy loading):
-      # 'FaceToBoard', 'ResetUCS', 'IntelligentWorkflow', 'MaterialSystem', 'StampConfigManager'
-      
+      # 'FaceToBoard', 'ResetUCS', 'IntelligentWorkflow', 'MaterialSystem', 'StampConfigManager', 'GroupToComponent'
+
       'FlipUCS' => 'lib/flip_ucs',
       'RenameEntities' => 'lib/rename_entities',
       'RotateLocalAxisSelectionCenter' => 'lib/rotate_local_axis_selection_center',
       'StampName' => 'lib/stamp_name',
       'SelectStamps' => 'lib/select_stamps',
-      'GroupToComponent' => 'lib/group_to_component',
       'UpdateStamps' => 'lib/update_stamps',
       'LaserEngraving' => 'lib/laser_engraving',
       'Apply3DPrint' => 'lib/apply_3d_print',

@@ -11,6 +11,77 @@ module Rjv
       ORIGIN = Geom::Point3d.new(0, 0, 0).freeze
       # Transformação que inverte Y e Z localmente (mantém X)
       FLIP_YZ_TRANSFORMATION = Geom::Transformation.scaling(ORIGIN, 1, -1, -1).freeze
+      STAMP_LAYER_NAME = "MU_Texto".freeze
+      STAMP_ATTRIBUTE_DICT = "Rjv_StampName".freeze
+      STAMP_GROUP_IDENTIFIER_KEY = "IsStampNameGroup".freeze
+
+      # --- Métodos auxiliares para gerenciar carimbos ---
+
+      # Detecta se uma definição contém carimbos
+      def self.has_stamps?(definition)
+        return false unless definition && definition.entities
+
+        model = Sketchup.active_model
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        return false unless stamp_layer
+
+        definition.entities.any? do |entity|
+          entity.is_a?(Sketchup::Group) &&
+          entity.layer == stamp_layer &&
+          entity.get_attribute(STAMP_ATTRIBUTE_DICT, STAMP_GROUP_IDENTIFIER_KEY)
+        end
+      end
+
+      # Remove todos os carimbos de uma definição
+      def self.remove_stamps(definition)
+        return 0 unless definition && definition.entities
+
+        model = Sketchup.active_model
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        return 0 unless stamp_layer
+
+        stamps_to_remove = []
+        definition.entities.each do |entity|
+          if entity.is_a?(Sketchup::Group) &&
+             entity.layer == stamp_layer &&
+             entity.get_attribute(STAMP_ATTRIBUTE_DICT, STAMP_GROUP_IDENTIFIER_KEY)
+            stamps_to_remove << entity
+          end
+        end
+
+        stamps_to_remove.each { |stamp| stamp.erase! if stamp.valid? }
+
+        puts "   - #{stamps_to_remove.length} carimbo(s) removido(s)"
+        stamps_to_remove.length
+      end
+
+      # Reaplica carimbos a uma definição
+      def self.reapply_stamps(definition)
+        return false unless definition
+
+        # Garante que StampName está carregado
+        Rjv::MockupTools.ensure_loaded('StampName')
+        return false unless defined?(Rjv::MockupTools::StampName)
+
+        model = Sketchup.active_model
+        settings = Rjv::MockupTools::StampName.load_settings
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        stamp_layer ||= model.layers.add(STAMP_LAYER_NAME)
+        stamp_layer.color = [0, 255, 0] if stamp_layer
+
+        # Verifica se a definição é MakettePro (planificável)
+        return false unless definition.get_attribute("MakettePro", "identifier") == "MakettePro"
+
+        # Cria o carimbo
+        top_face = Rjv::MockupTools::StampName.send(:find_top_face, definition.entities)
+        if top_face
+          Rjv::MockupTools::StampName.send(:create_stamp_as_group, definition, top_face, settings, stamp_layer)
+          puts "   - Carimbo reaplicado"
+          return true
+        end
+
+        false
+      end
 
       # --- Método principal chamado pelo comando ---
       def self.run
@@ -33,6 +104,13 @@ module Rjv
             if definition.entities.count == 0; puts "Aviso: Def '#{definition_name}' vazia."; failed_definitions[definition_name]||="Vazia"; next; end
 
             puts "--- Processando Flip UCS Local para: #{definition_name} ---"
+
+            # --- PASSO 0: Gerenciar Carimbos ---
+            # Detecta se há carimbos e os remove antes do flip
+            had_stamps = has_stamps?(definition)
+            if had_stamps
+              remove_stamps(definition)
+            end
 
             # --- PASSO 1: Aplicar Transformação de Flip Interna ---
             #    Transforma a geometria para que o que estava em +Y/+Z agora esteja em -Y/-Z
@@ -64,7 +142,13 @@ module Rjv
             end
             puts "   - #{all_instances_of_def.length} instância(s) compensada(s)."
 
-            # --- PASSO 3: Chamar Reset UCS (opcional, se você quiser combinar) ---
+            # --- PASSO 3: Reaplicar Carimbos ---
+            # Se havia carimbos, reaplica após o flip
+            if had_stamps
+              reapply_stamps(definition)
+            end
+
+            # --- (Opcional) Chamar Reset UCS ---
             # Se quiser que o botão Flip também faça o Reset imediatamente depois:
             # puts "   - Chamando Reset UCS após Flip..."
             # reset_success, reset_message = ResetUCS.process_single_definition(definition) # Precisa do ResetUCS refatorado

@@ -11,7 +11,7 @@ module Rjv
       TOOLBAR_CONFIG = {
         main: {
           name: "MakettePro",
-          tools: [:face_to_board, :group_to_component, :reset_ucs, :flip_ucs, :rename_entities, :rotate_x, :rotate_y, :rotate_z],
+          tools: [:reset_ucs, :flip_ucs, :rename_entities, :rotate_x, :rotate_y, :rotate_z],
           always_visible: true,
           priority: 1  # ✅ Cria primeiro
         },
