@@ -9,6 +9,9 @@ module Rjv
 
       # --- Constantes ---
       ROTATION_ANGLE = 90.degrees
+      GLOBAL_X_AXIS = Geom::Vector3d.new(1, 0, 0).freeze
+      GLOBAL_Y_AXIS = Geom::Vector3d.new(0, 1, 0).freeze
+      GLOBAL_Z_AXIS = Geom::Vector3d.new(0, 0, 1).freeze
 
       # --- Método Auxiliar Comum ---
       private_class_method def self.get_selection_and_center(model)
@@ -25,7 +28,31 @@ module Rjv
         return selection, center
       end
 
-      # --- Rotacionar em torno do Eixo X LOCAL da primeira entidade ---
+      # --- Detectar se Shift está pressionado ---
+      private_class_method def self.shift_pressed?
+        begin
+          # Tenta detectar o estado do Shift via Win32API (Windows)
+          if Sketchup.platform == :platform_win
+            require 'fiddle'
+            require 'fiddle/import'
+
+            # GetKeyState do Windows
+            user32 = Fiddle::dlopen('user32')
+            get_key_state = Fiddle::Function.new(user32['GetKeyState'], [Fiddle::TYPE_INT], Fiddle::TYPE_SHORT)
+
+            # VK_SHIFT = 0x10
+            state = get_key_state.call(0x10)
+            return (state & 0x8000) != 0
+          end
+        rescue => e
+          puts "Aviso: Não foi possível detectar estado do Shift: #{e.message}"
+        end
+
+        # Fallback: sempre retorna false (usa local axes)
+        return false
+      end
+
+      # --- Rotacionar em torno do Eixo X (Local ou Global) ---
       def self.rotate_local_x
         model = Sketchup.active_model
         selection, center = get_selection_and_center(model)
@@ -34,57 +61,92 @@ module Rjv
           return
         end
 
-        # Pega a primeira entidade válida como referência para o eixo
-        reference_entity = selection.first
-        local_xaxis_world = reference_entity.transformation.xaxis rescue nil
-        unless local_xaxis_world && local_xaxis_world.valid? && local_xaxis_world.length > 1e-6
-            UI.messagebox("Não foi possível obter o eixo X local da primeira entidade selecionada.")
-            return
+        # Detecta se Shift está pressionado
+        use_global = shift_pressed?
+
+        if use_global
+          # Usa eixo X global
+          rotation_axis = GLOBAL_X_AXIS
+          operation_name = "Rotate Global X 90"
+          puts "Rotacionando em torno do Eixo X GLOBAL no Centro da Seleção: #{center.inspect}"
+        else
+          # Usa eixo X local da primeira entidade
+          reference_entity = selection.first
+          rotation_axis = reference_entity.transformation.xaxis rescue nil
+          unless rotation_axis && rotation_axis.valid? && rotation_axis.length > 1e-6
+              UI.messagebox("Não foi possível obter o eixo X local da primeira entidade selecionada.")
+              return
+          end
+          operation_name = "Rotate Local X 90"
+          puts "Rotacionando em torno do Eixo X Local (ref: #{reference_entity.entityID}) no Centro da Seleção: #{center.inspect}"
         end
 
-        puts "Rotacionando em torno do Eixo X Local (ref: #{reference_entity.entityID}) no Centro da Seleção: #{center.inspect}"
-        model.start_operation("Rotate Local X 90", true)
-        transformation = Geom::Transformation.rotation(center, local_xaxis_world, ROTATION_ANGLE)
-        model.active_entities.transform_entities(transformation, selection) # Aplica a toda seleção válida
+        model.start_operation(operation_name, true)
+        transformation = Geom::Transformation.rotation(center, rotation_axis, ROTATION_ANGLE)
+        model.active_entities.transform_entities(transformation, selection)
         model.commit_operation
       end
 
-      # --- Rotacionar em torno do Eixo Y LOCAL da primeira entidade ---
+      # --- Rotacionar em torno do Eixo Y (Local ou Global) ---
       def self.rotate_local_y
         model = Sketchup.active_model
         selection, center = get_selection_and_center(model)
         unless selection && center; UI.messagebox("Selecione Grupo(s)/Componente(s)."); return; end
 
-        reference_entity = selection.first
-        local_yaxis_world = reference_entity.transformation.yaxis rescue nil
-        unless local_yaxis_world && local_yaxis_world.valid? && local_yaxis_world.length > 1e-6
-            UI.messagebox("Não foi possível obter o eixo Y local da primeira entidade selecionada.")
-            return
+        # Detecta se Shift está pressionado
+        use_global = shift_pressed?
+
+        if use_global
+          # Usa eixo Y global
+          rotation_axis = GLOBAL_Y_AXIS
+          operation_name = "Rotate Global Y 90"
+          puts "Rotacionando em torno do Eixo Y GLOBAL no Centro da Seleção: #{center.inspect}"
+        else
+          # Usa eixo Y local da primeira entidade
+          reference_entity = selection.first
+          rotation_axis = reference_entity.transformation.yaxis rescue nil
+          unless rotation_axis && rotation_axis.valid? && rotation_axis.length > 1e-6
+              UI.messagebox("Não foi possível obter o eixo Y local da primeira entidade selecionada.")
+              return
+          end
+          operation_name = "Rotate Local Y 90"
+          puts "Rotacionando em torno do Eixo Y Local (ref: #{reference_entity.entityID}) no Centro da Seleção: #{center.inspect}"
         end
 
-        puts "Rotacionando em torno do Eixo Y Local (ref: #{reference_entity.entityID}) no Centro da Seleção: #{center.inspect}"
-        model.start_operation("Rotate Local Y 90", true)
-        transformation = Geom::Transformation.rotation(center, local_yaxis_world, ROTATION_ANGLE)
+        model.start_operation(operation_name, true)
+        transformation = Geom::Transformation.rotation(center, rotation_axis, ROTATION_ANGLE)
         model.active_entities.transform_entities(transformation, selection)
         model.commit_operation
       end
 
-      # --- Rotacionar em torno do Eixo Z LOCAL da primeira entidade ---
+      # --- Rotacionar em torno do Eixo Z (Local ou Global) ---
       def self.rotate_local_z
         model = Sketchup.active_model
         selection, center = get_selection_and_center(model)
         unless selection && center; UI.messagebox("Selecione Grupo(s)/Componente(s)."); return; end
 
-        reference_entity = selection.first
-        local_zaxis_world = reference_entity.transformation.zaxis rescue nil
-        unless local_zaxis_world && local_zaxis_world.valid? && local_zaxis_world.length > 1e-6
-            UI.messagebox("Não foi possível obter o eixo Z local da primeira entidade selecionada.")
-            return
+        # Detecta se Shift está pressionado
+        use_global = shift_pressed?
+
+        if use_global
+          # Usa eixo Z global
+          rotation_axis = GLOBAL_Z_AXIS
+          operation_name = "Rotate Global Z 90"
+          puts "Rotacionando em torno do Eixo Z GLOBAL no Centro da Seleção: #{center.inspect}"
+        else
+          # Usa eixo Z local da primeira entidade
+          reference_entity = selection.first
+          rotation_axis = reference_entity.transformation.zaxis rescue nil
+          unless rotation_axis && rotation_axis.valid? && rotation_axis.length > 1e-6
+              UI.messagebox("Não foi possível obter o eixo Z local da primeira entidade selecionada.")
+              return
+          end
+          operation_name = "Rotate Local Z 90"
+          puts "Rotacionando em torno do Eixo Z Local (ref: #{reference_entity.entityID}) no Centro da Seleção: #{center.inspect}"
         end
 
-        puts "Rotacionando em torno do Eixo Z Local (ref: #{reference_entity.entityID}) no Centro da Seleção: #{center.inspect}"
-        model.start_operation("Rotate Local Z 90", true)
-        transformation = Geom::Transformation.rotation(center, local_zaxis_world, ROTATION_ANGLE)
+        model.start_operation(operation_name, true)
+        transformation = Geom::Transformation.rotation(center, rotation_axis, ROTATION_ANGLE)
         model.active_entities.transform_entities(transformation, selection)
         model.commit_operation
       end
