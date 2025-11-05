@@ -6,6 +6,57 @@ require 'set'
 
 module Rjv
   module MockupTools
+
+    # Ferramenta de seleção interativa para Renomear
+    class RenameSelectionTool
+
+      def initialize(dialog, selection_array)
+        @dialog = dialog
+        @selection = selection_array
+      end
+
+      def activate
+        @model = Sketchup.active_model
+        @view = @model.active_view
+        Sketchup.status_text = "Renomear: Clique nos objetos na ordem desejada (Esc para finalizar)"
+        puts "Seleção interativa ativada - #{@selection.length} já selecionado(s)"
+      end
+
+      def deactivate(view)
+        view.invalidate
+      end
+
+      def onLButtonDown(flags, x, y, view)
+        ph = view.pick_helper
+        ph.do_pick(x, y)
+        picked = ph.best_picked
+
+        return unless picked
+        return unless picked.is_a?(Sketchup::Group) || picked.is_a?(Sketchup::ComponentInstance)
+
+        # Adiciona à seleção
+        @selection << picked
+        puts "Adicionado: #{@selection.length} objeto(s)"
+
+        # Atualiza o diálogo
+        @dialog.execute_script("updateSelectionCount(#{@selection.length});")
+      end
+
+      def onKeyDown(key, repeat, flags, view)
+        VK_ESCAPE = 27
+        if key == VK_ESCAPE
+          puts "Seleção finalizada: #{@selection.length} objeto(s)"
+          @model.select_tool(nil)
+          return true
+        end
+        false
+      end
+
+      def onSetCursor
+        UI.set_cursor(0)
+      end
+    end
+
     module RenameEntities
 
       # --- Constantes ---
@@ -14,6 +65,9 @@ module Rjv
       Y_AXIS = Geom::Vector3d.new(0, 1, 0).freeze
       Z_AXIS = Geom::Vector3d.new(0, 0, 1).freeze
       ORIGIN = Geom::Point3d.new(0, 0, 0).freeze
+      STAMP_LAYER_NAME = "MU_Texto".freeze
+      STAMP_ATTRIBUTE_DICT = "Rjv_StampName".freeze
+      STAMP_GROUP_IDENTIFIER_KEY = "IsStampNameGroup".freeze
 
       # --- Estado ---
       @last_bulk_settings = {
@@ -28,6 +82,67 @@ module Rjv
           replaceText: "",
           keepCase: true
       }.freeze
+
+      # --- Métodos para gerenciar carimbos ---
+      private_class_method def self.has_stamp?(definition)
+        return false unless definition && definition.entities
+
+        model = Sketchup.active_model
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        return false unless stamp_layer
+
+        definition.entities.any? do |entity|
+          entity.is_a?(Sketchup::Group) &&
+          entity.layer == stamp_layer &&
+          entity.get_attribute(STAMP_ATTRIBUTE_DICT, STAMP_GROUP_IDENTIFIER_KEY)
+        end
+      end
+
+      private_class_method def self.remove_stamps(definition)
+        return 0 unless definition && definition.entities
+
+        model = Sketchup.active_model
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        return 0 unless stamp_layer
+
+        stamps_removed = 0
+        definition.entities.to_a.each do |entity|
+          if entity.is_a?(Sketchup::Group) &&
+             entity.layer == stamp_layer &&
+             entity.get_attribute(STAMP_ATTRIBUTE_DICT, STAMP_GROUP_IDENTIFIER_KEY)
+            entity.erase! if entity.valid?
+            stamps_removed += 1
+          end
+        end
+
+        stamps_removed
+      end
+
+      private_class_method def self.reapply_stamp(definition)
+        return false unless definition
+
+        # Garante que StampName está carregado
+        Rjv::MockupTools.ensure_loaded('StampName')
+        return false unless defined?(Rjv::MockupTools::StampName)
+
+        model = Sketchup.active_model
+        settings = Rjv::MockupTools::StampName.load_settings
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        stamp_layer ||= model.layers.add(STAMP_LAYER_NAME)
+        stamp_layer.color = [0, 255, 0] if stamp_layer
+
+        # Verifica se a definição é MakettePro (planificável)
+        return false unless definition.get_attribute("MakettePro", "identifier") == "MakettePro"
+
+        # Cria o carimbo
+        top_face = Rjv::MockupTools::StampName.send(:find_top_face, definition.entities)
+        if top_face
+          Rjv::MockupTools::StampName.send(:create_stamp_as_group, definition, top_face, settings, stamp_layer)
+          return true
+        end
+
+        false
+      end
 
       # --- Getter para Configurações ---
       def self.get_last_bulk_settings
@@ -55,10 +170,14 @@ module Rjv
         valid_entities = selection.select do |e|
           e.valid? && (e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance))
         end
+
+        # Permite abrir sem seleção - diálogo terá botão de seleção
         if valid_entities.empty?
-          UI.messagebox("Nenhum Grupo/Comp. selecionado.")
+          # Abre diálogo vazio, usuário pode clicar em "Selecionar"
+          show_bulk_rename_dialog([], model)
           return
         end
+
         if valid_entities.length == 1
           rename_single(valid_entities.first, model)
         else
@@ -112,6 +231,9 @@ module Rjv
 
       # --- show_bulk_rename_dialog ---
       private_class_method def self.show_bulk_rename_dialog(initial_selection, model)
+          # Variável para rastrear a seleção atual
+          current_selection = initial_selection.dup
+
           dialog = UI::HtmlDialog.new(
               dialog_title: "Renomear Defs/Grupos",
               preferences_key: "RjvMockupToolsRenameBulk",
@@ -125,7 +247,13 @@ module Rjv
           dialog.add_action_callback("request_initial_data") do |action_context|
               settings_to_send = get_last_bulk_settings # Usa o getter
               settings_to_send[:startValue] = settings_to_send[:startValue].to_s # String para JS
-              dialog.execute_script("initializeDialog(#{initial_selection.length}, #{settings_to_send.to_json});")
+              dialog.execute_script("initializeDialog(#{current_selection.length}, #{settings_to_send.to_json});")
+          end
+
+          dialog.add_action_callback("start_selection") do |action_context|
+              # Ativa ferramenta de seleção interativa
+              puts "Iniciando seleção interativa para Renomear..."
+              model.select_tool(RenameSelectionTool.new(dialog, current_selection))
           end
 
           dialog.add_action_callback("save_settings") do |action_context, settings|
@@ -158,7 +286,7 @@ module Rjv
                }.freeze
 
                dialog.close
-               execute_bulk_rename(initial_selection, model, @last_bulk_settings)
+               execute_bulk_rename(current_selection, model, @last_bulk_settings)
           end
 
           dialog.add_action_callback("cancel") do |action_context|
@@ -259,9 +387,27 @@ module Rjv
                  puts "   - Pulando '#{cn || '(S/N)'}' -> '#{new_name}': #{reason == :same_name ? "Igual" : "Def Existe"}."
              else
                  begin
+                     # Verificar se tem carimbo antes de renomear
+                     had_stamp = false
+                     if isd
+                       had_stamp = has_stamp?(target_object)
+                       if had_stamp
+                         remove_stamps(target_object)
+                         puts "     - Carimbo removido"
+                       end
+                     end
+
+                     # Renomear
                      target_object.name = new_name; pc += 1
                      if isd; existing_def_names << new_name; rdb.add(target_object); end
                      puts "   + Renomeado: '#{cn || '(S/N)'}' -> '#{new_name}'"
+
+                     # Reaplicar carimbo se tinha
+                     if had_stamp
+                       if reapply_stamp(target_object)
+                         puts "     + Carimbo reaplicado"
+                       end
+                     end
                  rescue => re
                      puts "   - ERRO renomear '#{new_name}': #{re.message}"; sc += 1; skipped_reasons[:error] += 1
                  end

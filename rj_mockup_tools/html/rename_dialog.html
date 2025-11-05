@@ -214,8 +214,11 @@
 <body>
     <div class="container">
         <h2>Renomear Defs/Grupos em Lote</h2>
-        <div id="selection-info" class="info-text">
-            0 objetos selecionados
+        <div class="inline-group" style="align-items: center; margin-bottom: 1rem;">
+            <div id="selection-info" class="info-text" style="flex: 1; margin-bottom: 0;">
+                0 objetos selecionados
+            </div>
+            <button id="btnSelect" class="primary" style="width: auto; padding: 8px 16px;">Selecionar</button>
         </div>
 
         <div class="form-group">
@@ -314,9 +317,8 @@
         // Inicialização do dialog
         function initializeDialog(count, settings) {
             selectionCount = count;
-            document.getElementById('selection-info').textContent = 
-                `${count} objeto${count !== 1 ? 's' : ''} selecionado${count !== 1 ? 's' : ''}`;
-            
+            updateSelectionCount(count);
+
             // Preencher campos com os valores salvos
             document.getElementById('prefix').value = settings.prefix || '';
             document.getElementById('suffix').value = settings.suffix || '';
@@ -338,6 +340,13 @@
             document.getElementById('sortMethodDropdown').value = sortMethod;
         }
         
+        // Atualizar contagem de seleção
+        function updateSelectionCount(count) {
+            selectionCount = count;
+            document.getElementById('selection-info').textContent =
+                `${count} objeto${count !== 1 ? 's' : ''} selecionado${count !== 1 ? 's' : ''}`;
+        }
+
         // Solicitar dados iniciais
         function request_initial_data() {
             if (!requestInProgress) {
@@ -381,6 +390,9 @@
             document.getElementById('nameMode').addEventListener('change', updateNameModePanel);
 
             // Botões
+            document.getElementById('btnSelect').addEventListener('click', function() {
+                sketchup.start_selection();
+            });
             document.getElementById('btnApply').addEventListener('click', saveSettings);
             document.getElementById('btnCancel').addEventListener('click', function() {
                 sketchup.cancel();
