@@ -22,37 +22,27 @@ module Rjv
           seqType: "N",
           startValue: 1,
           increment: 1,
-          sortMethod: "C",
-          nameMode: "R", # R=Replace, K=Keep+Prefix/Suffix, F=Find/Replace
+          sortMethod: "SEL",  # SEL=Selection Order (novo padrão)
+          nameMode: "R",      # R=Replace, K=Keep+Prefix/Suffix, F=Find/Replace
           findText: "",
           replaceText: "",
-          keepCase: true,
-          addLayer: false,
-          layerName: "",
-          addAttributes: false,
-          attributeKey: "Description",
-          attributeValue: ""
+          keepCase: true
       }.freeze
 
       # --- Getter para Configurações ---
       def self.get_last_bulk_settings
         unless defined?(@last_bulk_settings)
-            @last_bulk_settings = { 
-                prefix: "Comp_", 
-                suffix: "", 
-                seqType: "N", 
-                startValue: 1, 
-                increment: 1, 
-                sortMethod: "C",
+            @last_bulk_settings = {
+                prefix: "Comp_",
+                suffix: "",
+                seqType: "N",
+                startValue: 1,
+                increment: 1,
+                sortMethod: "SEL",  # SEL=Selection Order (novo padrão)
                 nameMode: "R",
                 findText: "",
                 replaceText: "",
-                keepCase: true,
-                addLayer: false,
-                layerName: "",
-                addAttributes: false,
-                attributeKey: "Description",
-                attributeValue: ""
+                keepCase: true
             }.freeze
         end
         return @last_bulk_settings.dup
@@ -143,38 +133,28 @@ module Rjv
                suffix = settings["suffix"] || ""
                seq_type = (settings["seqType"] == "A") ? "A" : "N"
                sv_raw = settings["startValue"]
-               sort_method = settings["sortMethod"] || "C" # Default C
+               sort_method = settings["sortMethod"] || "SEL"  # Default agora é SEL
                inc = settings["increment"].to_i; inc = 1 if inc < 1
                name_mode = settings["nameMode"] || "R"
                find_text = settings["findText"] || ""
                replace_text = settings["replaceText"] || ""
                keep_case = settings["keepCase"] == true
-               add_layer = settings["addLayer"] == true
-               layer_name = settings["layerName"] || ""
-               add_attributes = settings["addAttributes"] == true
-               attribute_key = settings["attributeKey"] || "Description"
-               attribute_value = settings["attributeValue"] || ""
-               
+
                sv = nil
                if seq_type == "N"; begin; sv = Integer(sv_raw); rescue; sv = 1; end
                else; sv = sv_raw.to_s.strip.upcase; if sv.empty? || !sv.match?(/^[A-Z]+$/); sv = "A"; end; end
 
                @last_bulk_settings = {
-                   prefix: prefix, 
-                   suffix: suffix, 
-                   seqType: seq_type, 
-                   startValue: sv, 
-                   increment: inc, 
+                   prefix: prefix,
+                   suffix: suffix,
+                   seqType: seq_type,
+                   startValue: sv,
+                   increment: inc,
                    sortMethod: sort_method,
                    nameMode: name_mode,
                    findText: find_text,
                    replaceText: replace_text,
-                   keepCase: keep_case,
-                   addLayer: add_layer,
-                   layerName: layer_name,
-                   addAttributes: add_attributes,
-                   attributeKey: attribute_key,
-                   attributeValue: attribute_value
+                   keepCase: keep_case
                }.freeze
 
                dialog.close
@@ -201,21 +181,6 @@ module Rjv
           find_text = settings[:findText]
           replace_text = settings[:replaceText]
           keep_case = settings[:keepCase]
-          add_layer = settings[:addLayer]
-          layer_name = settings[:layerName]
-          add_attributes = settings[:addAttributes]
-          attribute_key = settings[:attributeKey]
-          attribute_value = settings[:attributeValue]
-          
-          # Preparar layer se necessário
-          target_layer = nil
-          if add_layer && !layer_name.empty?
-            target_layer = get_or_create_layer(layer_name, model)
-            if target_layer.nil?
-              UI.messagebox("Não foi possível criar/obter a layer '#{layer_name}'")
-              add_layer = false
-            end
-          end
 
           # Agrupa e Ordena
           definitions_to_rename = {}; groups_to_rename = []
@@ -226,7 +191,8 @@ module Rjv
           end
           items_to_sort = groups_to_rename + definitions_to_rename.values
           begin
-              ordered_items = sort_entities(items_to_sort, settings[:sortMethod], model)
+              # Para "SEL" (Selection Order), passa a lista original na ordem de seleção
+              ordered_items = sort_entities(items_to_sort, settings[:sortMethod], model, entities_to_rename)
               raise "Falha na ordenação (retornou nil)" if ordered_items.nil?
           rescue => e; UI.messagebox("Erro na ordenação: #{e.message}"); puts e.backtrace.first(5); return; end
 
@@ -296,34 +262,6 @@ module Rjv
                      target_object.name = new_name; pc += 1
                      if isd; existing_def_names << new_name; rdb.add(target_object); end
                      puts "   + Renomeado: '#{cn || '(S/N)'}' -> '#{new_name}'"
-                     
-                     # Adicionar à layer especificada
-                     if add_layer && target_layer && item.respond_to?(:layer=)
-                         begin
-                             item.layer = target_layer
-                             puts "     + Definido layer '#{layer_name}' para '#{new_name}'"
-                         rescue => e
-                             puts "     - Erro ao definir layer: #{e.message}"
-                         end
-                     end
-                     
-                     # Adicionar atributos personalizados
-                     if add_attributes && !attribute_key.empty?
-                         begin
-                             attr_target = is_component ? item : target_object
-                             if attr_target.respond_to?(:set_attribute)
-                                 # Processar possíveis placeholders no valor do atributo
-                                 processed_value = attribute_value.gsub("{nome}", new_name)
-                                                                 .gsub("{seq}", sq)
-                                                                 .gsub("{original}", cn)
-                                 
-                                 attr_target.set_attribute("RJVTools", attribute_key, processed_value)
-                                 puts "     + Atributo '#{attribute_key}' definido para '#{processed_value}'"
-                             end
-                         rescue => e
-                             puts "     - Erro ao definir atributo: #{e.message}"
-                         end
-                     end
                  rescue => re
                      puts "   - ERRO renomear '#{new_name}': #{re.message}"; sc += 1; skipped_reasons[:error] += 1
                  end
@@ -339,7 +277,7 @@ module Rjv
 
 
       # --- Função auxiliar para ordenar entidades (FORMATADA) ---
-      private_class_method def self.sort_entities(entities, method, model)
+      private_class_method def self.sort_entities(entities, method, model, original_selection = nil)
         origin = ORIGIN; infinity = Float::INFINITY
         get_sort_value = -> (entity, calculation) do
             begin
@@ -353,6 +291,28 @@ module Rjv
         end
 
         case method
+        when 'SEL'
+          # Ordem de seleção: preserva a ordem original
+          if original_selection && !original_selection.empty?
+            # Cria um mapa de índices da seleção original
+            selection_index = {}
+            original_selection.each_with_index do |entity, idx|
+              if entity.is_a?(Sketchup::ComponentInstance)
+                selection_index[entity.definition] = idx unless selection_index.key?(entity.definition)
+              elsif entity.is_a?(Sketchup::Group)
+                selection_index[entity] = idx
+              end
+            end
+
+            # Ordena entities baseado no índice da seleção original
+            return entities.sort_by do |e|
+              target = e.is_a?(Sketchup::ComponentInstance) ? e.definition : e
+              selection_index[target] || infinity
+            end
+          else
+            # Fallback: mantém a ordem atual
+            return entities
+          end
         when 'C'
           return entities.sort_by(&:entityID)
         when 'L'

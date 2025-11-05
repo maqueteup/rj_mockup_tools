@@ -282,6 +282,7 @@
         <div class="form-group">
             <label for="sortMethodDropdown">Ordenação:</label>
             <select id="sortMethodDropdown">
+                <option value="SEL">Ordem de Seleção</option>
                 <option value="C">ID (padrão)</option>
                 <option value="L">Esquerda→Direita</option>
                 <option value="R">Direita→Esquerda</option>
@@ -297,42 +298,6 @@
                 <option value="SIZEDESC">Tamanho (maior)</option>
                 <option value="RANDOM">Aleatório</option>
             </select>
-        </div>
-
-        <div class="section-separator"></div>
-
-        <!-- Opções adicionais -->
-        <div class="panel">
-            <h3 class="panel-title">Opções Adicionais</h3>
-            
-            <div class="inline-group">
-                <div class="form-group">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="addLayer">
-                        <label for="addLayer">Atribuir Layer</label>
-                    </div>
-                    <div id="layerPanel" style="display: none; margin-top: 8px;">
-                        <input type="text" id="layerName" placeholder="Nome da layer">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="addAttributes">
-                        <label for="addAttributes">Adicionar Atributo</label>
-                    </div>
-                    <div id="attributesPanel" style="display: none; margin-top: 8px;">
-                        <div class="inline-group">
-                            <input type="text" id="attributeKey" value="Description" placeholder="Chave">
-                            <input type="text" id="attributeValue" placeholder="Valor">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="attributeInfoText" class="info-text" style="display: none;">
-                Placeholders: {nome} = novo nome, {seq} = sequência, {original} = nome original
-            </div>
         </div>
 
         <div class="button-group">
@@ -369,19 +334,8 @@
             document.getElementById('keepCase').checked = settings.keepCase !== false;
             
             // Ordenação - atualiza o dropdown
-            const sortMethod = settings.sortMethod || 'C';
+            const sortMethod = settings.sortMethod || 'SEL';
             document.getElementById('sortMethodDropdown').value = sortMethod;
-            
-            // Opções adicionais
-            document.getElementById('addLayer').checked = settings.addLayer === true;
-            document.getElementById('layerName').value = settings.layerName || '';
-            togglePanel('layerPanel', settings.addLayer === true);
-            
-            document.getElementById('addAttributes').checked = settings.addAttributes === true;
-            document.getElementById('attributeKey').value = settings.attributeKey || 'Description';
-            document.getElementById('attributeValue').value = settings.attributeValue || '';
-            togglePanel('attributesPanel', settings.addAttributes === true);
-            togglePanel('attributeInfoText', settings.addAttributes === true);
         }
         
         // Solicitar dados iniciais
@@ -415,14 +369,9 @@
                 findText: document.getElementById('findText').value,
                 replaceText: document.getElementById('replaceText').value,
                 keepCase: document.getElementById('keepCase').checked,
-                sortMethod: document.getElementById('sortMethodDropdown').value,
-                addLayer: document.getElementById('addLayer').checked,
-                layerName: document.getElementById('layerName').value,
-                addAttributes: document.getElementById('addAttributes').checked,
-                attributeKey: document.getElementById('attributeKey').value,
-                attributeValue: document.getElementById('attributeValue').value
+                sortMethod: document.getElementById('sortMethodDropdown').value
             };
-            
+
             sketchup.save_settings(settings);
         }
         
@@ -430,14 +379,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Event listeners para atualizar a interface com base nas seleções
             document.getElementById('nameMode').addEventListener('change', updateNameModePanel);
-            document.getElementById('addLayer').addEventListener('change', function() {
-                togglePanel('layerPanel', this.checked);
-            });
-            document.getElementById('addAttributes').addEventListener('change', function() {
-                togglePanel('attributesPanel', this.checked);
-                togglePanel('attributeInfoText', this.checked);
-            });
-            
+
             // Botões
             document.getElementById('btnApply').addEventListener('click', saveSettings);
             document.getElementById('btnCancel').addEventListener('click', function() {
