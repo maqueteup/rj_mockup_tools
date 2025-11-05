@@ -73,22 +73,38 @@ module Rjv
           @last_clicked.each do |entity|
             next unless entity.valid?
 
-            bounds = entity.bounds
-            center = bounds.center
+            # Pega transformação e bounds locais
+            transformation = entity.transformation
+            if entity.is_a?(Sketchup::ComponentInstance)
+              local_bounds = entity.definition.bounds
+            else
+              local_bounds = entity.entities.bounds rescue entity.bounds
+            end
 
-            # Desenha círculo grande vermelho no plano YZ
-            draw_circle_x(view, center, 100, @axis_color)
+            # Centro e tamanho local
+            local_center = local_bounds.center
+            diagonal = local_bounds.diagonal
+            radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
+
+            # Desenha círculo vermelho no plano YZ local
+            draw_circle_x(view, entity, local_center, radius, @axis_color)
           end
         end
 
-        def draw_circle_x(view, center, radius, color)
-          # Círculo no plano YZ (perpendicular ao eixo X)
+        def draw_circle_x(view, entity, local_center, radius, color)
+          transformation = entity.transformation
+
+          # Círculo no plano YZ local (perpendicular ao eixo X local)
           points = []
           segments = 36
           segments.times do |i|
             angle = (i.to_f / segments) * Math::PI * 2
-            offset = Geom::Vector3d.new(0, Math.cos(angle) * radius, Math.sin(angle) * radius)
-            points << center.offset(offset)
+            # Ponto local no plano YZ
+            local_offset = Geom::Vector3d.new(0, Math.cos(angle) * radius, Math.sin(angle) * radius)
+            local_point = local_center + local_offset
+            # Transforma para global
+            global_point = transformation * local_point
+            points << global_point
           end
           points << points.first
 
@@ -98,9 +114,15 @@ module Rjv
 
           # Seta indicando rotação +90°
           arrow_angle = Math::PI / 2
-          arrow_point = center.offset(Geom::Vector3d.new(0, Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius))
-          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(0, -15, 10))
-          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(15, 0, 10))
+          local_arrow_offset = Geom::Vector3d.new(0, Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius)
+          arrow_point = transformation * (local_center + local_arrow_offset)
+
+          # Vetores da seta em coordenadas locais, depois transformados
+          local_arrow_dir1 = Geom::Vector3d.new(0, -15, 10)
+          local_arrow_dir2 = Geom::Vector3d.new(15, 0, 10)
+          arrow_head1 = arrow_point + transformation.xaxis * local_arrow_dir1.x + transformation.yaxis * local_arrow_dir1.y + transformation.zaxis * local_arrow_dir1.z
+          arrow_head2 = arrow_point + transformation.xaxis * local_arrow_dir2.x + transformation.yaxis * local_arrow_dir2.y + transformation.zaxis * local_arrow_dir2.z
+
           view.line_width = 3
           view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end
@@ -169,22 +191,38 @@ module Rjv
           @last_clicked.each do |entity|
             next unless entity.valid?
 
-            bounds = entity.bounds
-            center = bounds.center
+            # Pega transformação e bounds locais
+            transformation = entity.transformation
+            if entity.is_a?(Sketchup::ComponentInstance)
+              local_bounds = entity.definition.bounds
+            else
+              local_bounds = entity.entities.bounds rescue entity.bounds
+            end
 
-            # Desenha círculo grande verde no plano XZ
-            draw_circle_y(view, center, 100, @axis_color)
+            # Centro e tamanho local
+            local_center = local_bounds.center
+            diagonal = local_bounds.diagonal
+            radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
+
+            # Desenha círculo verde no plano XZ local
+            draw_circle_y(view, entity, local_center, radius, @axis_color)
           end
         end
 
-        def draw_circle_y(view, center, radius, color)
-          # Círculo no plano XZ (perpendicular ao eixo Y)
+        def draw_circle_y(view, entity, local_center, radius, color)
+          transformation = entity.transformation
+
+          # Círculo no plano XZ local (perpendicular ao eixo Y local)
           points = []
           segments = 36
           segments.times do |i|
             angle = (i.to_f / segments) * Math::PI * 2
-            offset = Geom::Vector3d.new(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
-            points << center.offset(offset)
+            # Ponto local no plano XZ
+            local_offset = Geom::Vector3d.new(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
+            local_point = local_center + local_offset
+            # Transforma para global
+            global_point = transformation * local_point
+            points << global_point
           end
           points << points.first
 
@@ -194,9 +232,15 @@ module Rjv
 
           # Seta indicando rotação +90°
           arrow_angle = Math::PI / 2
-          arrow_point = center.offset(Geom::Vector3d.new(Math.cos(arrow_angle) * radius, 0, Math.sin(arrow_angle) * radius))
-          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(-15, 0, 10))
-          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(0, 15, 10))
+          local_arrow_offset = Geom::Vector3d.new(Math.cos(arrow_angle) * radius, 0, Math.sin(arrow_angle) * radius)
+          arrow_point = transformation * (local_center + local_arrow_offset)
+
+          # Vetores da seta em coordenadas locais, depois transformados
+          local_arrow_dir1 = Geom::Vector3d.new(-15, 0, 10)
+          local_arrow_dir2 = Geom::Vector3d.new(0, 15, 10)
+          arrow_head1 = arrow_point + transformation.xaxis * local_arrow_dir1.x + transformation.yaxis * local_arrow_dir1.y + transformation.zaxis * local_arrow_dir1.z
+          arrow_head2 = arrow_point + transformation.xaxis * local_arrow_dir2.x + transformation.yaxis * local_arrow_dir2.y + transformation.zaxis * local_arrow_dir2.z
+
           view.line_width = 3
           view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end
@@ -265,22 +309,38 @@ module Rjv
           @last_clicked.each do |entity|
             next unless entity.valid?
 
-            bounds = entity.bounds
-            center = bounds.center
+            # Pega transformação e bounds locais
+            transformation = entity.transformation
+            if entity.is_a?(Sketchup::ComponentInstance)
+              local_bounds = entity.definition.bounds
+            else
+              local_bounds = entity.entities.bounds rescue entity.bounds
+            end
 
-            # Desenha círculo grande azul no plano XY
-            draw_circle_z(view, center, 100, @axis_color)
+            # Centro e tamanho local
+            local_center = local_bounds.center
+            diagonal = local_bounds.diagonal
+            radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
+
+            # Desenha círculo azul no plano XY local
+            draw_circle_z(view, entity, local_center, radius, @axis_color)
           end
         end
 
-        def draw_circle_z(view, center, radius, color)
-          # Círculo no plano XY (perpendicular ao eixo Z)
+        def draw_circle_z(view, entity, local_center, radius, color)
+          transformation = entity.transformation
+
+          # Círculo no plano XY local (perpendicular ao eixo Z local)
           points = []
           segments = 36
           segments.times do |i|
             angle = (i.to_f / segments) * Math::PI * 2
-            offset = Geom::Vector3d.new(Math.cos(angle) * radius, Math.sin(angle) * radius, 0)
-            points << center.offset(offset)
+            # Ponto local no plano XY
+            local_offset = Geom::Vector3d.new(Math.cos(angle) * radius, Math.sin(angle) * radius, 0)
+            local_point = local_center + local_offset
+            # Transforma para global
+            global_point = transformation * local_point
+            points << global_point
           end
           points << points.first
 
@@ -290,9 +350,15 @@ module Rjv
 
           # Seta indicando rotação +90°
           arrow_angle = 0  # Posição à direita do círculo
-          arrow_point = center.offset(Geom::Vector3d.new(Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius, 0))
-          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(10, -15, 0))
-          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(10, 0, 15))
+          local_arrow_offset = Geom::Vector3d.new(Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius, 0)
+          arrow_point = transformation * (local_center + local_arrow_offset)
+
+          # Vetores da seta em coordenadas locais, depois transformados
+          local_arrow_dir1 = Geom::Vector3d.new(10, -15, 0)
+          local_arrow_dir2 = Geom::Vector3d.new(10, 0, 15)
+          arrow_head1 = arrow_point + transformation.xaxis * local_arrow_dir1.x + transformation.yaxis * local_arrow_dir1.y + transformation.zaxis * local_arrow_dir1.z
+          arrow_head2 = arrow_point + transformation.xaxis * local_arrow_dir2.x + transformation.yaxis * local_arrow_dir2.y + transformation.zaxis * local_arrow_dir2.z
+
           view.line_width = 3
           view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end

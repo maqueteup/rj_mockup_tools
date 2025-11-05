@@ -35,9 +35,16 @@ module Rjv
         return unless picked
         return unless picked.is_a?(Sketchup::Group) || picked.is_a?(Sketchup::ComponentInstance)
 
-        # Adiciona à seleção
-        @selection << picked
-        puts "Adicionado: #{@selection.length} objeto(s)"
+        # Verifica se já está selecionado
+        if @selection.include?(picked)
+          # Desseleção: remove da lista
+          @selection.delete(picked)
+          puts "Removido: #{@selection.length} objeto(s) restante(s)"
+        else
+          # Adiciona à seleção
+          @selection << picked
+          puts "Adicionado: #{@selection.length} objeto(s)"
+        end
 
         # Atualiza o diálogo
         @dialog.execute_script("updateSelectionCount(#{@selection.length});")
@@ -56,19 +63,34 @@ module Rjv
       end
 
       def draw(view)
-        # Desenha números sequenciais no centro Z+ de cada peça selecionada
+        # Desenha números sequenciais no centro da peça, no topo do plano XY local
         @selection.each_with_index do |entity, index|
           next unless entity.valid?
 
-          # Calcula o centro do bounding box
-          bounds = entity.bounds
-          center = bounds.center
+          # Pega a transformação da entidade
+          transformation = entity.transformation
 
-          # Ponto no topo (Z+)
-          top_point = Geom::Point3d.new(center.x, center.y, bounds.max.z)
+          # Pega o bounds local (da definição/grupo)
+          if entity.is_a?(Sketchup::ComponentInstance)
+            local_bounds = entity.definition.bounds
+          else
+            local_bounds = entity.entities.bounds rescue entity.bounds
+          end
+
+          # Centro do bounds local
+          local_center = local_bounds.center
+
+          # Altura máxima Z local
+          local_top_z = local_bounds.max.z
+
+          # Ponto no centro XY local, no topo Z local
+          local_top_point = Geom::Point3d.new(local_center.x, local_center.y, local_top_z)
+
+          # Transforma para coordenadas globais
+          global_point = transformation * local_top_point
 
           # Desenha o número grande em vermelho
-          view.draw_text(top_point, (index + 1).to_s, size: 48, bold: true, color: 'red')
+          view.draw_text(global_point, (index + 1).to_s, size: 48, bold: true, color: 'red')
         end
       end
 
