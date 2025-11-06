@@ -185,22 +185,6 @@ module Rjv
         view.invalidate
       end
 
-      def onLButtonDown(flags, x, y, view)
-        return unless @hovered_corner
-
-        # Usuário clicou em um canto
-        corner_index = @hovered_corner
-        transformation_info = @corner_transformations[corner_index]
-
-        puts "Canto escolhido: #{transformation_info[:label]}"
-
-        # Aplica o reset UCS com este canto e orientação
-        apply_ucs_with_corner(corner_index, transformation_info)
-
-        # Finaliza a ferramenta
-        @model.select_tool(nil)
-      end
-
       def onKeyDown(key, repeat, flags, view)
         if key == VK_ESCAPE
           puts "Reset UCS cancelado"
