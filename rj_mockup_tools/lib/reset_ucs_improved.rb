@@ -13,123 +13,148 @@ module Rjv
       CORNER_RADIUS = 25  # Raio em pixels para detecção de canto
       HIGHLIGHT_SIZE = 20.0.mm  # Tamanho do círculo de highlight
 
-      def initialize(instances)
-        @instances = instances
-        @instances_by_definition = instances.group_by(&:definition)
+      def initialize
         @current_instance = nil
         @corners = []
         @hovered_corner = nil
         @corner_transformations = {}
-        @show_multiple_message = instances.length > 1
+        @picked_instance = nil
       end
 
       def activate
         @model = Sketchup.active_model
         @view = @model.active_view
 
-        # Prepara os dados para cada definição
-        prepare_corner_data
-
-        Sketchup.status_text = "Reset UCS: Passe o mouse sobre um canto e clique para escolher a origem (Esc para cancelar)"
-        puts "Ferramenta Reset UCS ativada - #{@instances.length} objeto(s)"
+        Sketchup.status_text = "Reset UCS: Clique em um componente, depois escolha o canto (ESC para sair)"
+        puts "Ferramenta Reset UCS ativada - clique em componentes para resetar UCS"
       end
 
       def deactivate(view)
         view.invalidate
+        @current_instance = nil
+        @corners = []
+        @picked_instance = nil
       end
 
-      def prepare_corner_data
-        @instances_by_definition.each do |definition, def_instances|
-          # Usa a primeira instância como referência para visualização
-          @current_instance ||= def_instances.first
+      def onLButtonDown(flags, x, y, view)
+        # Verifica se clicou em um canto
+        if @hovered_corner && @current_instance
+          apply_ucs_with_corner(@hovered_corner)
 
-          bounds = definition.bounds
+          # Limpa e continua pronto para próximo componente
+          @current_instance = nil
+          @corners = []
+          @picked_instance = nil
+          @hovered_corner = nil
+          view.invalidate
 
-          # Calcula os 4 cantos no plano Z atual
-          # Mantém Z constante, varia apenas X e Y
-          min_pt = bounds.min
-          max_pt = bounds.max
-
-          # 4 cantos: (min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)
-          corners_local = [
-            Geom::Point3d.new(min_pt.x, min_pt.y, min_pt.z),  # Canto 0: inferior-esquerdo
-            Geom::Point3d.new(max_pt.x, min_pt.y, min_pt.z),  # Canto 1: inferior-direito
-            Geom::Point3d.new(max_pt.x, max_pt.y, min_pt.z),  # Canto 2: superior-direito
-            Geom::Point3d.new(min_pt.x, max_pt.y, min_pt.z)   # Canto 3: superior-esquerdo
-          ]
-
-          @corners = corners_local
-
-          # Para cada canto, calcula a transformação que atende a regra da mão direita
-          calculate_corner_transformations(corners_local, bounds)
+          Sketchup.status_text = "Reset UCS aplicado! Clique em outro componente ou ESC para sair"
+          return
         end
+
+        # Se não clicou em canto, tenta selecionar um componente
+        ph = view.pick_helper
+        ph.do_pick(x, y)
+
+        picked = nil
+        if ph.count > 0
+          path = ph.path_at(0)
+          if path.is_a?(Sketchup::InstancePath)
+            # Busca MakettePro no path
+            picked = find_makettepro_in_path(path)
+            picked ||= path.to_a.last
+          else
+            picked = ph.best_picked
+          end
+        end
+
+        return unless picked
+        return unless picked.is_a?(Sketchup::ComponentInstance)
+
+        # Componente selecionado
+        @current_instance = picked
+        @picked_instance = picked
+        prepare_corner_data_for_instance(picked)
+
+        Sketchup.status_text = "Componente selecionado: #{picked.definition.name} - Escolha o canto"
+        view.invalidate
+      end
+
+      # Encontra o primeiro componente MakettePro no path
+      def find_makettepro_in_path(path)
+        path_array = path.to_a.reverse
+        path_array.each do |entity|
+          next unless entity.is_a?(Sketchup::ComponentInstance)
+          definition = entity.definition
+          if definition.get_attribute("MakettePro", "identifier") == "MakettePro"
+            return entity
+          end
+        end
+        nil
+      end
+
+      def prepare_corner_data_for_instance(instance)
+        definition = instance.definition
+        bounds = definition.bounds
+
+        # Calcula os 4 cantos no plano Z atual
+        min_pt = bounds.min
+        max_pt = bounds.max
+
+        corners_local = [
+          Geom::Point3d.new(min_pt.x, min_pt.y, min_pt.z),  # Canto 0: inferior-esquerdo
+          Geom::Point3d.new(max_pt.x, min_pt.y, min_pt.z),  # Canto 1: inferior-direito
+          Geom::Point3d.new(max_pt.x, max_pt.y, min_pt.z),  # Canto 2: superior-direito
+          Geom::Point3d.new(min_pt.x, max_pt.y, min_pt.z)   # Canto 3: superior-esquerdo
+        ]
+
+        @corners = corners_local
+        calculate_corner_transformations(corners_local, bounds)
       end
 
       def calculate_corner_transformations(corners, bounds)
-        # Para cada canto, define uma orientação que atende a regra da mão direita
-        # Estratégia: X tangente ao perímetro (sentido horário), Y aponta para dentro
-        # Olhando do canto para o centro: X está à direita, Y está à frente
+        # Cada canto escolhido se torna o novo canto inferior-esquerdo
+        # Orientação sempre X=(1,0,0) para direita, Y=(0,1,0) para frente, Z=(0,0,1) para cima
         # Regra da mão direita: X × Y = Z
 
         @corner_transformations = {}
 
-        # Z sempre aponta para cima
-        z_axis = Geom::Vector3d.new(0, 0, 1)
+        # Orientação padrão (canto se torna inferior-esquerdo)
+        x_axis = Geom::Vector3d.new(1, 0, 0)  # X para direita
+        y_axis = Geom::Vector3d.new(0, 1, 0)  # Y para frente
+        z_axis = Geom::Vector3d.new(0, 0, 1)  # Z para cima
 
-        # Canto 0: inferior-esquerdo (min_x, min_y)
-        # Próximo canto no sentido horário: (max_x, min_y)
-        # X tangente ao perímetro (direção horária): para a direita
-        x_axis_0 = Geom::Vector3d.new(1, 0, 0)
-        # Y perpendicular, apontando para dentro (direção do centro)
-        y_axis_0 = Geom::Vector3d.new(0, 1, 0)
+        # Todos os cantos usam a mesma orientação
         @corner_transformations[0] = {
           origin: corners[0],
-          x_axis: x_axis_0,
-          y_axis: y_axis_0,
+          x_axis: x_axis,
+          y_axis: y_axis,
           z_axis: z_axis,
-          label: "Inferior-Esquerdo (X→direita, Y→centro)"
+          label: "Inferior-Esquerdo → novo inf-esq"
         }
 
-        # Canto 1: inferior-direito (max_x, min_y)
-        # Próximo canto no sentido horário: (max_x, max_y)
-        # X tangente ao perímetro (direção horária): para cima
-        x_axis_1 = Geom::Vector3d.new(0, 1, 0)
-        # Y perpendicular, apontando para dentro: para a esquerda
-        y_axis_1 = Geom::Vector3d.new(-1, 0, 0)
         @corner_transformations[1] = {
           origin: corners[1],
-          x_axis: x_axis_1,
-          y_axis: y_axis_1,
+          x_axis: x_axis,
+          y_axis: y_axis,
           z_axis: z_axis,
-          label: "Inferior-Direito (X→cima, Y→centro)"
+          label: "Inferior-Direito → novo inf-esq"
         }
 
-        # Canto 2: superior-direito (max_x, max_y)
-        # Próximo canto no sentido horário: (min_x, max_y)
-        # X tangente ao perímetro (direção horária): para a esquerda
-        x_axis_2 = Geom::Vector3d.new(-1, 0, 0)
-        # Y perpendicular, apontando para dentro: para baixo
-        y_axis_2 = Geom::Vector3d.new(0, -1, 0)
         @corner_transformations[2] = {
           origin: corners[2],
-          x_axis: x_axis_2,
-          y_axis: y_axis_2,
+          x_axis: x_axis,
+          y_axis: y_axis,
           z_axis: z_axis,
-          label: "Superior-Direito (X→esquerda, Y→centro)"
+          label: "Superior-Direito → novo inf-esq"
         }
 
-        # Canto 3: superior-esquerdo (min_x, max_y)
-        # Próximo canto no sentido horário: (min_x, min_y)
-        # X tangente ao perímetro (direção horária): para baixo
-        x_axis_3 = Geom::Vector3d.new(0, -1, 0)
-        # Y perpendicular, apontando para dentro: para a direita
-        y_axis_3 = Geom::Vector3d.new(1, 0, 0)
         @corner_transformations[3] = {
           origin: corners[3],
-          x_axis: x_axis_3,
-          y_axis: y_axis_3,
+          x_axis: x_axis,
+          y_axis: y_axis,
           z_axis: z_axis,
-          label: "Superior-Esquerdo (X→baixo, Y→centro)"
+          label: "Superior-Esquerdo → novo inf-esq"
         }
       end
 
@@ -290,77 +315,139 @@ module Rjv
         return bounds.corner(corner_index)
       end
 
-      def apply_ucs_with_corner(corner_index, transformation_info)
-        model = Sketchup.active_model
+      def apply_ucs_with_corner(corner_index)
+        return unless @current_instance && @current_instance.valid?
 
-        model.start_operation("Reset UCS - Canto #{corner_index}", true)
+        model = Sketchup.active_model
+        definition = @current_instance.definition
+        transformation_info = @corner_transformations[corner_index]
+
+        model.start_operation("Reset UCS - #{definition.name}", true)
 
         begin
-          @instances_by_definition.each do |definition, def_instances|
-            new_origin = transformation_info[:origin]
+          new_origin = transformation_info[:origin]
+          puts "Aplicando UCS para #{definition.name} com origem em #{new_origin}"
 
-            puts "Aplicando UCS para #{definition.name} com origem em #{new_origin}"
+          # Verifica se tem carimbo
+          had_stamp = has_stamp?(definition)
+          if had_stamp
+            stamps_removed = remove_stamps(definition)
+            puts "  → #{stamps_removed} carimbo(s) removido(s)"
+          end
 
-            # Move geometria para origem
-            move_to_origin = Geom::Transformation.translation(new_origin.vector_to(ORIGIN))
+          # Move geometria para origem
+          move_to_origin = Geom::Transformation.translation(new_origin.vector_to(ORIGIN))
 
-            # Aplica rotação baseada nos eixos escolhidos
-            # Cria transformação de rotação baseada nos eixos
-            rotation_tf = create_rotation_transformation(
-              transformation_info[:x_axis],
-              transformation_info[:y_axis],
-              transformation_info[:z_axis]
-            )
+          # Como todos os cantos usam a mesma orientação, não precisa rotação
+          # Aplica apenas a translação
+          combined_tf = move_to_origin
 
-            # Combina translação e rotação
-            combined_tf = rotation_tf * move_to_origin
+          # Aplica à definição
+          entities_to_transform = definition.entities.to_a
+          definition.entities.transform_entities(combined_tf, entities_to_transform)
 
-            # Aplica à definição
-            entities_to_transform = definition.entities.to_a
-            definition.entities.transform_entities(combined_tf, entities_to_transform)
+          # Compensa nas instâncias
+          compensation_tf = combined_tf.inverse
 
-            # Compensa nas instâncias
-            compensation_tf = combined_tf.inverse
+          all_instances = definition.instances.to_a
+          all_instances.each do |inst|
+            next unless inst.valid?
+            old_tf = inst.transformation
+            new_tf = old_tf * compensation_tf
+            inst.transformation = new_tf
+          end
 
-            all_instances = definition.instances.to_a
-            all_instances.each do |inst|
-              next unless inst.valid?
-              old_tf = inst.transformation
-              new_tf = old_tf * compensation_tf
-              inst.transformation = new_tf
+          # Reaplica carimbo se tinha
+          if had_stamp
+            if reapply_stamp(definition)
+              puts "  → Carimbo reaplicado"
             end
-
-            puts "✓ #{definition.name} processado - #{all_instances.length} instância(s)"
           end
 
           model.commit_operation
-          Sketchup.status_text = "Reset UCS aplicado com sucesso"
+          puts "✓ #{definition.name} processado - #{all_instances.length} instância(s)"
 
         rescue => e
           model.abort_operation
           puts "Erro ao aplicar Reset UCS: #{e.message}"
           puts e.backtrace.first(5)
-          UI.messagebox("Erro ao aplicar Reset UCS: #{e.message}")
         end
       end
 
-      def create_rotation_transformation(x_axis, y_axis, z_axis)
-        # Cria uma transformação de rotação baseada nos eixos fornecidos
-        # Normaliza os eixos
-        x_norm = x_axis.normalize
-        y_norm = y_axis.normalize
-        z_norm = z_axis.normalize
+      # Constantes para carimbos
+      STAMP_LAYER_NAME = "MU_Texto".freeze
+      STAMP_ATTRIBUTE_DICT = "Rjv_StampName".freeze
+      STAMP_GROUP_IDENTIFIER_KEY = "IsStampNameGroup".freeze
 
-        # Cria matriz de transformação
-        # A matriz é organizada em colunas: [x_axis, y_axis, z_axis, origin]
-        matrix = [
-          x_norm.x, x_norm.y, x_norm.z, 0,
-          y_norm.x, y_norm.y, y_norm.z, 0,
-          z_norm.x, z_norm.y, z_norm.z, 0,
-          0, 0, 0, 1
-        ]
+      def has_stamp?(definition)
+        return false unless definition && definition.entities
 
-        return Geom::Transformation.new(matrix)
+        model = Sketchup.active_model
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        return false unless stamp_layer
+
+        definition.entities.any? do |entity|
+          entity.is_a?(Sketchup::Group) &&
+          entity.layer == stamp_layer &&
+          entity.get_attribute(STAMP_ATTRIBUTE_DICT, STAMP_GROUP_IDENTIFIER_KEY)
+        end
+      end
+
+      def remove_stamps(definition)
+        return 0 unless definition && definition.entities
+
+        model = Sketchup.active_model
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        return 0 unless stamp_layer
+
+        stamps_removed = 0
+        definition.entities.to_a.each do |entity|
+          if entity.is_a?(Sketchup::Group) &&
+             entity.layer == stamp_layer &&
+             entity.get_attribute(STAMP_ATTRIBUTE_DICT, STAMP_GROUP_IDENTIFIER_KEY)
+            entity.erase! if entity.valid?
+            stamps_removed += 1
+          end
+        end
+
+        stamps_removed
+      end
+
+      def reapply_stamp(definition)
+        return false unless definition
+
+        # Garante que StampName está carregado
+        Rjv::MockupTools.ensure_loaded('StampName')
+        return false unless defined?(Rjv::MockupTools::StampName)
+
+        model = Sketchup.active_model
+        settings = Rjv::MockupTools::StampName.load_settings
+        stamp_layer = model.layers[STAMP_LAYER_NAME]
+        stamp_layer ||= model.layers.add(STAMP_LAYER_NAME)
+        stamp_layer.color = [0, 255, 0] if stamp_layer
+
+        # Verifica se a definição é MakettePro (planificável)
+        return false unless definition.get_attribute("MakettePro", "identifier") == "MakettePro"
+
+        # Cria o carimbo
+        top_face = find_top_face(definition.entities)
+        if top_face
+          Rjv::MockupTools::StampName.send(:create_stamp_as_group, definition, top_face, settings, stamp_layer)
+          return true
+        end
+
+        false
+      end
+
+      def find_top_face(entities)
+        faces = entities.grep(Sketchup::Face)
+        return nil if faces.empty?
+
+        # Encontra face com normal Z+ (maior área)
+        top_faces = faces.select { |face| face.normal.z > 0.7 }
+        return nil if top_faces.empty?
+
+        top_faces.max_by(&:area)
       end
 
       def onSetCursor
@@ -506,51 +593,12 @@ module Rjv
         return reset_ucs_smart(nil, { detection_mode: :intelligent, debug: false })
       end
 
-      # Função interativa para escolher canto do UCS
+      # Função interativa para escolher canto do UCS (sem pré-seleção necessária)
       def run_interactive
         model = Sketchup.active_model
-        selection = model.selection
-
-        # Suporta objetos aninhados e busca componentes MakettePro
-        instances = []
-        selection.each do |entity|
-          if entity.is_a?(Sketchup::ComponentInstance)
-            # Verifica se é MakettePro ou adiciona diretamente
-            instances << entity
-          elsif entity.is_a?(Sketchup::InstancePath)
-            # Procura por componentes MakettePro no path
-            makettepro = find_makettepro_in_path(entity)
-            if makettepro
-              instances << makettepro unless instances.include?(makettepro)
-            else
-              # Se não encontrou MakettePro, usa o último elemento
-              leaf = entity.to_a.last
-              instances << leaf if leaf.is_a?(Sketchup::ComponentInstance)
-            end
-          end
-        end
-
-        if instances.empty?
-          UI.messagebox("Selecione pelo menos um componente para resetar o UCS.")
-          return
-        end
-
-        puts "Iniciando ferramenta interativa de Reset UCS para #{instances.length} componente(s)..."
-        tool = Rjv::MockupTools::ResetUCSCornerTool.new(instances)
+        puts "Iniciando ferramenta interativa de Reset UCS - clique em componentes"
+        tool = Rjv::MockupTools::ResetUCSCornerTool.new
         model.select_tool(tool)
-      end
-
-      # Encontra o primeiro componente MakettePro no path (do mais profundo para o mais raso)
-      def find_makettepro_in_path(path)
-        path_array = path.to_a.reverse  # Começa do mais profundo
-        path_array.each do |entity|
-          next unless entity.is_a?(Sketchup::ComponentInstance)
-          definition = entity.definition
-          if definition.get_attribute("MakettePro", "identifier") == "MakettePro"
-            return entity
-          end
-        end
-        nil
       end
       
       # Função de conveniência para modo bottom-left clássico
