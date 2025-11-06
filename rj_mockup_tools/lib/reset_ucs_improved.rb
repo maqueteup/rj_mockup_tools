@@ -460,8 +460,11 @@ module Rjv
 
       def getExtents
         bb = Geom::BoundingBox.new
-        @instances.each do |inst|
-          bb.add(inst.bounds) if inst.valid?
+        if @current_instance && @current_instance.valid?
+          bb.add(@current_instance.bounds)
+        else
+          # Retorna bounding box do modelo inteiro se não há instância
+          bb = Sketchup.active_model.bounds
         end
         bb
       end
