@@ -58,13 +58,32 @@ module Rjv
 
         picked = nil
         if ph.count > 0
-          path = ph.path_at(0)
-          if path.is_a?(Sketchup::InstancePath)
-            # Busca MakettePro no path
-            picked = find_makettepro_in_path(path)
-            picked ||= path.to_a.last
-          else
-            picked = ph.best_picked
+          # Explora todos os itens do pick para encontrar componentes aninhados
+          # Começa do índice 0 (mais profundo) até count-1 (mais superficial)
+          (0...ph.count).each do |pick_index|
+            path = ph.path_at(pick_index)
+
+            if path.is_a?(Sketchup::InstancePath)
+              # Busca MakettePro no path, do mais profundo ao mais raso
+              picked = find_makettepro_in_path(path)
+              if picked
+                break
+              end
+
+              # Se não encontrou MakettePro, tenta o último elemento se for componente
+              leaf = path.to_a.last
+              if leaf.is_a?(Sketchup::ComponentInstance)
+                picked = leaf
+                break
+              end
+            else
+              # Não é path, verifica se é componente diretamente
+              entity = ph.picked_element_at(pick_index)
+              if entity.is_a?(Sketchup::ComponentInstance)
+                picked = entity
+                break
+              end
+            end
           end
         end
 
@@ -114,47 +133,55 @@ module Rjv
 
       def calculate_corner_transformations(corners, bounds)
         # Cada canto escolhido se torna o novo canto inferior-esquerdo
-        # Orientação sempre X=(1,0,0) para direita, Y=(0,1,0) para frente, Z=(0,0,1) para cima
+        # O gizmo rotaciona no eixo Z dependendo do canto
+        # Orientação inicial: X=(1,0,0), Y=(0,1,0), Z=(0,0,1)
         # Regra da mão direita: X × Y = Z
 
         @corner_transformations = {}
 
-        # Orientação padrão (canto se torna inferior-esquerdo)
-        x_axis = Geom::Vector3d.new(1, 0, 0)  # X para direita
-        y_axis = Geom::Vector3d.new(0, 1, 0)  # Y para frente
-        z_axis = Geom::Vector3d.new(0, 0, 1)  # Z para cima
+        z_axis = Geom::Vector3d.new(0, 0, 1)  # Z sempre para cima
 
-        # Todos os cantos usam a mesma orientação
+        # Canto 0: inferior-esquerdo (sem rotação)
         @corner_transformations[0] = {
           origin: corners[0],
-          x_axis: x_axis,
-          y_axis: y_axis,
+          x_axis: Geom::Vector3d.new(1, 0, 0),   # X direita
+          y_axis: Geom::Vector3d.new(0, 1, 0),   # Y frente
           z_axis: z_axis,
-          label: "Inferior-Esquerdo → novo inf-esq"
+          rotation: 0,
+          label: "Inf-Esq (0°)"
         }
 
+        # Canto 1: inferior-direito (90° anti-horário)
+        # Após rotação: X aponta para cima (0,1,0), Y aponta para esquerda (-1,0,0)
         @corner_transformations[1] = {
           origin: corners[1],
-          x_axis: x_axis,
-          y_axis: y_axis,
+          x_axis: Geom::Vector3d.new(0, 1, 0),   # X cima
+          y_axis: Geom::Vector3d.new(-1, 0, 0),  # Y esquerda
           z_axis: z_axis,
-          label: "Inferior-Direito → novo inf-esq"
+          rotation: -90.degrees,
+          label: "Inf-Dir (90°↺)"
         }
 
+        # Canto 2: superior-direito (180°)
+        # Após rotação: X aponta para esquerda (-1,0,0), Y aponta para trás (0,-1,0)
         @corner_transformations[2] = {
           origin: corners[2],
-          x_axis: x_axis,
-          y_axis: y_axis,
+          x_axis: Geom::Vector3d.new(-1, 0, 0),  # X esquerda
+          y_axis: Geom::Vector3d.new(0, -1, 0),  # Y trás
           z_axis: z_axis,
-          label: "Superior-Direito → novo inf-esq"
+          rotation: 180.degrees,
+          label: "Sup-Dir (180°)"
         }
 
+        # Canto 3: superior-esquerdo (270° anti-horário = 90° horário)
+        # Após rotação: X aponta para baixo (0,-1,0), Y aponta para direita (1,0,0)
         @corner_transformations[3] = {
           origin: corners[3],
-          x_axis: x_axis,
-          y_axis: y_axis,
+          x_axis: Geom::Vector3d.new(0, -1, 0),  # X baixo
+          y_axis: Geom::Vector3d.new(1, 0, 0),   # Y direita
           z_axis: z_axis,
-          label: "Superior-Esquerdo → novo inf-esq"
+          rotation: -270.degrees,
+          label: "Sup-Esq (270°↺)"
         }
       end
 
@@ -322,9 +349,15 @@ module Rjv
           # Move geometria para origem
           move_to_origin = Geom::Transformation.translation(new_origin.vector_to(ORIGIN))
 
-          # Como todos os cantos usam a mesma orientação, não precisa rotação
-          # Aplica apenas a translação
-          combined_tf = move_to_origin
+          # Rotação no eixo Z dependendo do canto escolhido
+          angle = transformation_info[:rotation] || 0
+          z_axis = Geom::Vector3d.new(0, 0, 1)
+          rotation_tf = Geom::Transformation.rotation(ORIGIN, z_axis, angle)
+
+          # Combina translação e rotação
+          combined_tf = rotation_tf * move_to_origin
+
+          puts "  → Rotação aplicada: #{(angle * 180.0 / Math::PI).round}°"
 
           # Aplica à definição
           entities_to_transform = definition.entities.to_a
