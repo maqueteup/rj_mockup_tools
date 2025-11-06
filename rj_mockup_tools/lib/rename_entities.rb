@@ -30,7 +30,20 @@ module Rjv
       def onLButtonDown(flags, x, y, view)
         ph = view.pick_helper
         ph.do_pick(x, y)
-        picked = ph.best_picked
+
+        # Suporte para objetos aninhados usando InstancePath
+        picked = nil
+        if ph.count > 0
+          # Tenta usar path para objetos aninhados
+          path = ph.path_at(0)
+          if path.is_a?(Sketchup::InstancePath)
+            # Pega o último elemento do path (objeto mais profundo)
+            picked = path.to_a.last
+          else
+            # Fallback para best_picked
+            picked = ph.best_picked
+          end
+        end
 
         return unless picked
         return unless picked.is_a?(Sketchup::Group) || picked.is_a?(Sketchup::ComponentInstance)

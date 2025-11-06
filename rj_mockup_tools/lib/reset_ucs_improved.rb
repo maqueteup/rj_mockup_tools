@@ -6,9 +6,363 @@ require 'sketchup.rb'
 
 module Rjv
   module MockupTools
+
+    # Ferramenta interativa para escolher canto do UCS
+    class ResetUCSCornerTool
+      VK_ESCAPE = 27
+      CORNER_RADIUS = 25  # Raio em pixels para detecção de canto
+      HIGHLIGHT_SIZE = 20.0.mm  # Tamanho do círculo de highlight
+
+      def initialize(instances)
+        @instances = instances
+        @instances_by_definition = instances.group_by(&:definition)
+        @current_instance = nil
+        @corners = []
+        @hovered_corner = nil
+        @corner_transformations = {}
+        @show_multiple_message = instances.length > 1
+      end
+
+      def activate
+        @model = Sketchup.active_model
+        @view = @model.active_view
+
+        # Prepara os dados para cada definição
+        prepare_corner_data
+
+        Sketchup.status_text = "Reset UCS: Passe o mouse sobre um canto e clique para escolher a origem (Esc para cancelar)"
+        puts "Ferramenta Reset UCS ativada - #{@instances.length} objeto(s)"
+      end
+
+      def deactivate(view)
+        view.invalidate
+      end
+
+      def prepare_corner_data
+        @instances_by_definition.each do |definition, def_instances|
+          # Usa a primeira instância como referência para visualização
+          @current_instance ||= def_instances.first
+
+          bounds = definition.bounds
+
+          # Calcula os 4 cantos no plano Z atual
+          # Mantém Z constante, varia apenas X e Y
+          min_pt = bounds.min
+          max_pt = bounds.max
+
+          # 4 cantos: (min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)
+          corners_local = [
+            Geom::Point3d.new(min_pt.x, min_pt.y, min_pt.z),  # Canto 0: inferior-esquerdo
+            Geom::Point3d.new(max_pt.x, min_pt.y, min_pt.z),  # Canto 1: inferior-direito
+            Geom::Point3d.new(max_pt.x, max_pt.y, min_pt.z),  # Canto 2: superior-direito
+            Geom::Point3d.new(min_pt.x, max_pt.y, min_pt.z)   # Canto 3: superior-esquerdo
+          ]
+
+          @corners = corners_local
+
+          # Para cada canto, calcula a transformação que atende a regra da mão direita
+          calculate_corner_transformations(corners_local, bounds)
+        end
+      end
+
+      def calculate_corner_transformations(corners, bounds)
+        # Para cada canto, define uma orientação que atende a regra da mão direita
+        # A regra da mão direita: X (polegar), Y (indicador), Z (médio)
+
+        # Vetores base
+        x_axis = Geom::Vector3d.new(1, 0, 0)
+        y_axis = Geom::Vector3d.new(0, 1, 0)
+        z_axis = Geom::Vector3d.new(0, 0, 1)
+
+        @corner_transformations = {}
+
+        # Canto 0: inferior-esquerdo (X+, Y+, Z+) - orientação padrão
+        @corner_transformations[0] = {
+          origin: corners[0],
+          x_axis: x_axis,
+          y_axis: y_axis,
+          z_axis: z_axis,
+          label: "Inferior-Esquerdo (X+, Y+)"
+        }
+
+        # Canto 1: inferior-direito (X-, Y+, Z+) - X invertido
+        @corner_transformations[1] = {
+          origin: corners[1],
+          x_axis: x_axis.reverse,
+          y_axis: y_axis,
+          z_axis: z_axis,
+          label: "Inferior-Direito (X-, Y+)"
+        }
+
+        # Canto 2: superior-direito (X-, Y-, Z+) - X e Y invertidos
+        @corner_transformations[2] = {
+          origin: corners[2],
+          x_axis: x_axis.reverse,
+          y_axis: y_axis.reverse,
+          z_axis: z_axis,
+          label: "Superior-Direito (X-, Y-)"
+        }
+
+        # Canto 3: superior-esquerdo (X+, Y-, Z+) - Y invertido
+        @corner_transformations[3] = {
+          origin: corners[3],
+          x_axis: x_axis,
+          y_axis: y_axis.reverse,
+          z_axis: z_axis,
+          label: "Superior-Esquerdo (X+, Y-)"
+        }
+      end
+
+      def onMouseMove(flags, x, y, view)
+        @hovered_corner = nil
+
+        return unless @current_instance && @current_instance.valid?
+
+        # Verifica qual canto está próximo do mouse
+        @corners.each_with_index do |corner, index|
+          # Transforma o ponto do local do componente para o mundo
+          world_pt = corner.transform(@current_instance.transformation)
+          screen_pt = view.screen_coords(world_pt)
+
+          # Calcula distância em pixels
+          dx = screen_pt.x - x
+          dy = screen_pt.y - y
+          dist = Math.sqrt(dx * dx + dy * dy)
+
+          if dist < CORNER_RADIUS
+            @hovered_corner = index
+            transformation_info = @corner_transformations[index]
+            Sketchup.status_text = "#{transformation_info[:label]} - Clique para escolher"
+            break
+          end
+        end
+
+        view.invalidate
+      end
+
+      def onLButtonDown(flags, x, y, view)
+        return unless @hovered_corner
+
+        # Usuário clicou em um canto
+        corner_index = @hovered_corner
+        transformation_info = @corner_transformations[corner_index]
+
+        puts "Canto escolhido: #{transformation_info[:label]}"
+
+        # Aplica o reset UCS com este canto e orientação
+        apply_ucs_with_corner(corner_index, transformation_info)
+
+        # Finaliza a ferramenta
+        @model.select_tool(nil)
+      end
+
+      def onKeyDown(key, repeat, flags, view)
+        if key == VK_ESCAPE
+          puts "Reset UCS cancelado"
+          @model.select_tool(nil)
+          return true
+        end
+        false
+      end
+
+      def draw(view)
+        return unless @current_instance && @current_instance.valid?
+        return if @corners.empty?
+
+        # Desenha os cantos
+        @corners.each_with_index do |corner, index|
+          world_pt = corner.transform(@current_instance.transformation)
+
+          # Cor baseada em hover
+          if @hovered_corner == index
+            view.drawing_color = Sketchup::Color.new(255, 165, 0)  # Laranja quando hover
+            view.line_width = 4
+
+            # Desenha círculo maior para highlight
+            draw_circle(view, world_pt, HIGHLIGHT_SIZE * 1.5)
+
+            # Desenha os eixos propostos
+            draw_axes_preview(view, world_pt, @corner_transformations[index])
+          else
+            view.drawing_color = Sketchup::Color.new(66, 133, 244)  # Azul padrão
+            view.line_width = 2
+          end
+
+          # Desenha círculo no canto
+          draw_circle(view, world_pt, HIGHLIGHT_SIZE)
+        end
+
+        # Desenha bordas do bounding box para contexto
+        draw_bounding_box_edges(view)
+      end
+
+      def draw_circle(view, center, radius)
+        # Desenha um círculo na viewport
+        points = []
+        segments = 16
+        (0..segments).each do |i|
+          angle = (i / segments.to_f) * 2.0 * Math::PI
+          # Círculo no plano XY
+          offset = Geom::Vector3d.new(
+            Math.cos(angle) * radius,
+            Math.sin(angle) * radius,
+            0
+          )
+          points << center.offset(offset)
+        end
+
+        view.draw(GL_LINE_STRIP, points)
+      end
+
+      def draw_axes_preview(view, origin, transformation_info)
+        # Desenha preview dos eixos X, Y, Z na orientação proposta
+        axis_length = 100.0.mm
+
+        # Eixo X - Vermelho
+        view.line_width = 3
+        view.drawing_color = Sketchup::Color.new(255, 0, 0)
+        x_end = origin.offset(transformation_info[:x_axis].transform(axis_length))
+        view.draw(GL_LINES, origin, x_end)
+
+        # Eixo Y - Verde
+        view.drawing_color = Sketchup::Color.new(0, 255, 0)
+        y_end = origin.offset(transformation_info[:y_axis].transform(axis_length))
+        view.draw(GL_LINES, origin, y_end)
+
+        # Eixo Z - Azul
+        view.drawing_color = Sketchup::Color.new(0, 0, 255)
+        z_end = origin.offset(transformation_info[:z_axis].transform(axis_length))
+        view.draw(GL_LINES, origin, z_end)
+      end
+
+      def draw_bounding_box_edges(view)
+        return unless @current_instance && @current_instance.valid?
+
+        definition = @current_instance.definition
+        bounds = definition.bounds
+
+        view.line_stipple = ""
+        view.line_width = 2
+        view.drawing_color = Sketchup::Color.new(100, 100, 100, 128)  # Cinza semi-transparente
+
+        # Desenha as arestas do bounding box
+        (0..11).each do |edge_index|
+          p1 = get_bbox_edge_point(bounds, edge_index, 0)
+          p2 = get_bbox_edge_point(bounds, edge_index, 1)
+
+          wp1 = p1.transform(@current_instance.transformation)
+          wp2 = p2.transform(@current_instance.transformation)
+
+          view.draw(GL_LINES, wp1, wp2)
+        end
+      end
+
+      def get_bbox_edge_point(bounds, edge_index, point_index)
+        # Retorna os pontos das 12 arestas de um bounding box
+        edges = [
+          [0, 1], [1, 2], [2, 3], [3, 0],  # Base inferior
+          [4, 5], [5, 6], [6, 7], [7, 4],  # Base superior
+          [0, 4], [1, 5], [2, 6], [3, 7]   # Arestas verticais
+        ]
+
+        corner_indices = edges[edge_index]
+        corner_index = corner_indices[point_index]
+        return bounds.corner(corner_index)
+      end
+
+      def apply_ucs_with_corner(corner_index, transformation_info)
+        model = Sketchup.active_model
+
+        model.start_operation("Reset UCS - Canto #{corner_index}", true)
+
+        begin
+          @instances_by_definition.each do |definition, def_instances|
+            new_origin = transformation_info[:origin]
+
+            puts "Aplicando UCS para #{definition.name} com origem em #{new_origin}"
+
+            # Move geometria para origem
+            move_to_origin = Geom::Transformation.translation(new_origin.vector_to(ORIGIN))
+
+            # Aplica rotação baseada nos eixos escolhidos
+            # Cria transformação de rotação baseada nos eixos
+            rotation_tf = create_rotation_transformation(
+              transformation_info[:x_axis],
+              transformation_info[:y_axis],
+              transformation_info[:z_axis]
+            )
+
+            # Combina translação e rotação
+            combined_tf = rotation_tf * move_to_origin
+
+            # Aplica à definição
+            entities_to_transform = definition.entities.to_a
+            definition.entities.transform_entities(combined_tf, entities_to_transform)
+
+            # Compensa nas instâncias
+            compensation_tf = combined_tf.inverse
+
+            all_instances = definition.instances.to_a
+            all_instances.each do |inst|
+              next unless inst.valid?
+              old_tf = inst.transformation
+              new_tf = old_tf * compensation_tf
+              inst.transformation = new_tf
+            end
+
+            puts "✓ #{definition.name} processado - #{all_instances.length} instância(s)"
+          end
+
+          model.commit_operation
+          Sketchup.status_text = "Reset UCS aplicado com sucesso"
+
+        rescue => e
+          model.abort_operation
+          puts "Erro ao aplicar Reset UCS: #{e.message}"
+          puts e.backtrace.first(5)
+          UI.messagebox("Erro ao aplicar Reset UCS: #{e.message}")
+        end
+      end
+
+      def create_rotation_transformation(x_axis, y_axis, z_axis)
+        # Cria uma transformação de rotação baseada nos eixos fornecidos
+        # Normaliza os eixos
+        x_norm = x_axis.normalize
+        y_norm = y_axis.normalize
+        z_norm = z_axis.normalize
+
+        # Cria matriz de transformação
+        # A matriz é organizada em colunas: [x_axis, y_axis, z_axis, origin]
+        matrix = [
+          x_norm.x, x_norm.y, x_norm.z, 0,
+          y_norm.x, y_norm.y, y_norm.z, 0,
+          z_norm.x, z_norm.y, z_norm.z, 0,
+          0, 0, 0, 1
+        ]
+
+        return Geom::Transformation.new(matrix)
+      end
+
+      def onSetCursor
+        if @hovered_corner
+          UI.set_cursor(641)  # Cursor de mão
+        else
+          UI.set_cursor(0)  # Cursor padrão
+        end
+      end
+
+      def getExtents
+        bb = Geom::BoundingBox.new
+        @instances.each do |inst|
+          bb.add(inst.bounds) if inst.valid?
+        end
+        bb
+      end
+    end
+
     module ResetUCS
       extend self
-      
+
       # Constantes
       TOLERANCE = 1e-4
       ORIGIN = Geom::Point3d.new(0, 0, 0)
@@ -130,6 +484,33 @@ module Rjv
       # Função de conveniência para usar com seleção atual (mantém compatibilidade)
       def run
         return reset_ucs_smart(nil, { detection_mode: :intelligent, debug: false })
+      end
+
+      # Função interativa para escolher canto do UCS
+      def run_interactive
+        model = Sketchup.active_model
+        selection = model.selection
+
+        # Suporta objetos aninhados usando instance path
+        instances = []
+        selection.each do |entity|
+          if entity.is_a?(Sketchup::ComponentInstance)
+            instances << entity
+          elsif entity.is_a?(Sketchup::InstancePath)
+            # Pega a leaf entity se for um path
+            leaf = entity.to_a.last
+            instances << leaf if leaf.is_a?(Sketchup::ComponentInstance)
+          end
+        end
+
+        if instances.empty?
+          UI.messagebox("Selecione pelo menos um componente para resetar o UCS.")
+          return
+        end
+
+        puts "Iniciando ferramenta interativa de Reset UCS para #{instances.length} componente(s)..."
+        tool = Rjv::MockupTools::ResetUCSCornerTool.new(instances)
+        model.select_tool(tool)
       end
       
       # Função de conveniência para modo bottom-left clássico

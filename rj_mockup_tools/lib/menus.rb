@@ -21,6 +21,11 @@ module Rjv
           Rjv::MockupTools::ResetUCS.run
         }
 
+        model_submenu.add_item("Resetar Eixos (Escolher Canto)") {
+          # ResetUCS já está carregado no início
+          Rjv::MockupTools::ResetUCS.run_interactive
+        }
+
         model_submenu.add_item("Inverter Eixo Z (UCS)") {
           Rjv::MockupTools.ensure_loaded('FlipUCS')
           Rjv::MockupTools::FlipUCS.run

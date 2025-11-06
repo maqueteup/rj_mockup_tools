@@ -97,8 +97,11 @@ module Rjv
       'face_to_board' => -> { 
         Rjv::MockupTools::FaceToBoard.run 
       },
-      'reset_ucs' => -> { 
-        Rjv::MockupTools::ResetUCS.run 
+      'reset_ucs' => -> {
+        Rjv::MockupTools::ResetUCS.run
+      },
+      'reset_ucs_interactive' => -> {
+        Rjv::MockupTools::ResetUCS.run_interactive
       },
       'intelligent_workflow' => -> { 
         Rjv::MockupTools::IntelligentWorkflow.run 
