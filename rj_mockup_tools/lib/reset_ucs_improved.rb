@@ -67,49 +67,60 @@ module Rjv
 
       def calculate_corner_transformations(corners, bounds)
         # Para cada canto, define uma orientação que atende a regra da mão direita
-        # A regra da mão direita: X (polegar), Y (indicador), Z (médio)
-
-        # Vetores base
-        x_axis = Geom::Vector3d.new(1, 0, 0)
-        y_axis = Geom::Vector3d.new(0, 1, 0)
-        z_axis = Geom::Vector3d.new(0, 0, 1)
+        # Regra da mão direita: Dedão=X, Indicador=Y, Médio=Z
+        # Matematicamente: Y = Z × X (produto vetorial)
 
         @corner_transformations = {}
 
-        # Canto 0: inferior-esquerdo (X+, Y+, Z+) - orientação padrão
+        # Z sempre aponta para cima
+        z_axis = Geom::Vector3d.new(0, 0, 1)
+
+        # Canto 0: inferior-esquerdo
+        # X aponta para a direita (para max_x)
+        x_axis_0 = Geom::Vector3d.new(1, 0, 0)
+        y_axis_0 = z_axis * x_axis_0  # Y = Z × X = (0, 1, 0)
         @corner_transformations[0] = {
           origin: corners[0],
-          x_axis: x_axis,
-          y_axis: y_axis,
+          x_axis: x_axis_0,
+          y_axis: y_axis_0,
           z_axis: z_axis,
-          label: "Inferior-Esquerdo (X+, Y+)"
+          label: "Inferior-Esquerdo (X→, Y↑)"
         }
 
-        # Canto 1: inferior-direito (X-, Y+, Z+) - X invertido
+        # Canto 1: inferior-direito
+        # X aponta para a esquerda (para min_x)
+        x_axis_1 = Geom::Vector3d.new(-1, 0, 0)
+        y_axis_1 = z_axis * x_axis_1  # Y = Z × X = (0, -1, 0)
         @corner_transformations[1] = {
           origin: corners[1],
-          x_axis: x_axis.reverse,
-          y_axis: y_axis,
+          x_axis: x_axis_1,
+          y_axis: y_axis_1,
           z_axis: z_axis,
-          label: "Inferior-Direito (X-, Y+)"
+          label: "Inferior-Direito (X←, Y↓)"
         }
 
-        # Canto 2: superior-direito (X-, Y-, Z+) - X e Y invertidos
+        # Canto 2: superior-direito
+        # X aponta para a esquerda (para min_x)
+        x_axis_2 = Geom::Vector3d.new(-1, 0, 0)
+        y_axis_2 = z_axis * x_axis_2  # Y = Z × X = (0, -1, 0)
         @corner_transformations[2] = {
           origin: corners[2],
-          x_axis: x_axis.reverse,
-          y_axis: y_axis.reverse,
+          x_axis: x_axis_2,
+          y_axis: y_axis_2,
           z_axis: z_axis,
-          label: "Superior-Direito (X-, Y-)"
+          label: "Superior-Direito (X←, Y↓)"
         }
 
-        # Canto 3: superior-esquerdo (X+, Y-, Z+) - Y invertido
+        # Canto 3: superior-esquerdo
+        # X aponta para a direita (para max_x)
+        x_axis_3 = Geom::Vector3d.new(1, 0, 0)
+        y_axis_3 = z_axis * x_axis_3  # Y = Z × X = (0, 1, 0)
         @corner_transformations[3] = {
           origin: corners[3],
-          x_axis: x_axis,
-          y_axis: y_axis.reverse,
+          x_axis: x_axis_3,
+          y_axis: y_axis_3,
           z_axis: z_axis,
-          label: "Superior-Esquerdo (X+, Y-)"
+          label: "Superior-Esquerdo (X→, Y↑)"
         }
       end
 
@@ -491,15 +502,22 @@ module Rjv
         model = Sketchup.active_model
         selection = model.selection
 
-        # Suporta objetos aninhados usando instance path
+        # Suporta objetos aninhados e busca componentes MakettePro
         instances = []
         selection.each do |entity|
           if entity.is_a?(Sketchup::ComponentInstance)
+            # Verifica se é MakettePro ou adiciona diretamente
             instances << entity
           elsif entity.is_a?(Sketchup::InstancePath)
-            # Pega a leaf entity se for um path
-            leaf = entity.to_a.last
-            instances << leaf if leaf.is_a?(Sketchup::ComponentInstance)
+            # Procura por componentes MakettePro no path
+            makettepro = find_makettepro_in_path(entity)
+            if makettepro
+              instances << makettepro unless instances.include?(makettepro)
+            else
+              # Se não encontrou MakettePro, usa o último elemento
+              leaf = entity.to_a.last
+              instances << leaf if leaf.is_a?(Sketchup::ComponentInstance)
+            end
           end
         end
 
@@ -511,6 +529,19 @@ module Rjv
         puts "Iniciando ferramenta interativa de Reset UCS para #{instances.length} componente(s)..."
         tool = Rjv::MockupTools::ResetUCSCornerTool.new(instances)
         model.select_tool(tool)
+      end
+
+      # Encontra o primeiro componente MakettePro no path (do mais profundo para o mais raso)
+      def find_makettepro_in_path(path)
+        path_array = path.to_a.reverse  # Começa do mais profundo
+        path_array.each do |entity|
+          next unless entity.is_a?(Sketchup::ComponentInstance)
+          definition = entity.definition
+          if definition.get_attribute("MakettePro", "identifier") == "MakettePro"
+            return entity
+          end
+        end
+        nil
       end
       
       # Função de conveniência para modo bottom-left clássico

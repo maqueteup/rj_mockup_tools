@@ -31,14 +31,16 @@ module Rjv
         ph = view.pick_helper
         ph.do_pick(x, y)
 
-        # Suporte para objetos aninhados usando InstancePath
+        # Suporte para objetos aninhados - busca componentes MakettePro no path
         picked = nil
         if ph.count > 0
           # Tenta usar path para objetos aninhados
           path = ph.path_at(0)
           if path.is_a?(Sketchup::InstancePath)
-            # Pega o último elemento do path (objeto mais profundo)
-            picked = path.to_a.last
+            # Procura no path por componentes com identifier=MakettePro
+            picked = find_makettepro_in_path(path)
+            # Se não encontrou MakettePro, usa o último elemento
+            picked ||= path.to_a.last
           else
             # Fallback para best_picked
             picked = ph.best_picked
@@ -64,6 +66,19 @@ module Rjv
 
         # Invalida a view para redesenhar com novo número
         @view.invalidate
+      end
+
+      # Encontra o primeiro componente MakettePro no path (do mais profundo para o mais raso)
+      def find_makettepro_in_path(path)
+        path_array = path.to_a.reverse  # Começa do mais profundo
+        path_array.each do |entity|
+          next unless entity.is_a?(Sketchup::ComponentInstance)
+          definition = entity.definition
+          if definition.get_attribute("MakettePro", "identifier") == "MakettePro"
+            return entity
+          end
+        end
+        nil
       end
 
       def onKeyDown(key, repeat, flags, view)
