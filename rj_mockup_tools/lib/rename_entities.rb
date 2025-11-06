@@ -389,11 +389,15 @@ module Rjv
                }.freeze
 
                dialog.close
+               # Desativa a ferramenta de seleção se estiver ativa
+               model.select_tool(nil)
                execute_bulk_rename(current_selection, model, @last_bulk_settings)
           end
 
           dialog.add_action_callback("cancel") do |action_context|
               dialog.close
+              # Desativa a ferramenta de seleção se estiver ativa
+              model.select_tool(nil)
           end
           dialog.center; dialog.show
           UI.start_timer(0.1, false) { dialog.execute_script("request_initial_data();") }

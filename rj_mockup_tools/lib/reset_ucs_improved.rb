@@ -67,60 +67,69 @@ module Rjv
 
       def calculate_corner_transformations(corners, bounds)
         # Para cada canto, define uma orientação que atende a regra da mão direita
-        # Regra da mão direita: Dedão=X, Indicador=Y, Médio=Z
-        # Matematicamente: Y = Z × X (produto vetorial)
+        # Estratégia: X tangente ao perímetro (sentido horário), Y aponta para dentro
+        # Olhando do canto para o centro: X está à direita, Y está à frente
+        # Regra da mão direita: X × Y = Z
 
         @corner_transformations = {}
 
         # Z sempre aponta para cima
         z_axis = Geom::Vector3d.new(0, 0, 1)
 
-        # Canto 0: inferior-esquerdo
-        # X aponta para a direita (para max_x)
+        # Canto 0: inferior-esquerdo (min_x, min_y)
+        # Próximo canto no sentido horário: (max_x, min_y)
+        # X tangente ao perímetro (direção horária): para a direita
         x_axis_0 = Geom::Vector3d.new(1, 0, 0)
-        y_axis_0 = z_axis * x_axis_0  # Y = Z × X = (0, 1, 0)
+        # Y perpendicular, apontando para dentro (direção do centro)
+        y_axis_0 = Geom::Vector3d.new(0, 1, 0)
         @corner_transformations[0] = {
           origin: corners[0],
           x_axis: x_axis_0,
           y_axis: y_axis_0,
           z_axis: z_axis,
-          label: "Inferior-Esquerdo (X→, Y↑)"
+          label: "Inferior-Esquerdo (X→direita, Y→centro)"
         }
 
-        # Canto 1: inferior-direito
-        # X aponta para a esquerda (para min_x)
-        x_axis_1 = Geom::Vector3d.new(-1, 0, 0)
-        y_axis_1 = z_axis * x_axis_1  # Y = Z × X = (0, -1, 0)
+        # Canto 1: inferior-direito (max_x, min_y)
+        # Próximo canto no sentido horário: (max_x, max_y)
+        # X tangente ao perímetro (direção horária): para cima
+        x_axis_1 = Geom::Vector3d.new(0, 1, 0)
+        # Y perpendicular, apontando para dentro: para a esquerda
+        y_axis_1 = Geom::Vector3d.new(-1, 0, 0)
         @corner_transformations[1] = {
           origin: corners[1],
           x_axis: x_axis_1,
           y_axis: y_axis_1,
           z_axis: z_axis,
-          label: "Inferior-Direito (X←, Y↓)"
+          label: "Inferior-Direito (X→cima, Y→centro)"
         }
 
-        # Canto 2: superior-direito
-        # X aponta para a esquerda (para min_x)
+        # Canto 2: superior-direito (max_x, max_y)
+        # Próximo canto no sentido horário: (min_x, max_y)
+        # X tangente ao perímetro (direção horária): para a esquerda
         x_axis_2 = Geom::Vector3d.new(-1, 0, 0)
-        y_axis_2 = z_axis * x_axis_2  # Y = Z × X = (0, -1, 0)
+        # Y perpendicular, apontando para dentro: para baixo
+        y_axis_2 = Geom::Vector3d.new(0, -1, 0)
         @corner_transformations[2] = {
           origin: corners[2],
           x_axis: x_axis_2,
           y_axis: y_axis_2,
           z_axis: z_axis,
-          label: "Superior-Direito (X←, Y↓)"
+          label: "Superior-Direito (X→esquerda, Y→centro)"
         }
 
-        # Canto 3: superior-esquerdo
-        # X aponta para a direita (para max_x)
-        x_axis_3 = Geom::Vector3d.new(1, 0, 0)
-        y_axis_3 = z_axis * x_axis_3  # Y = Z × X = (0, 1, 0)
+        # Canto 3: superior-esquerdo (min_x, max_y)
+        # Próximo canto no sentido horário: (min_x, min_y)
+        # X tangente ao perímetro (direção horária): para baixo
+        x_axis_3 = Geom::Vector3d.new(0, -1, 0)
+        # Y perpendicular, apontando para dentro: para a direita
+        y_axis_3 = Geom::Vector3d.new(1, 0, 0)
         @corner_transformations[3] = {
           origin: corners[3],
           x_axis: x_axis_3,
           y_axis: y_axis_3,
           z_axis: z_axis,
-          label: "Superior-Esquerdo (X→, Y↑)"
+          label: "Superior-Esquerdo (X→baixo, Y→centro)"
         }
       end
 
