@@ -53,7 +53,7 @@ module Rjv
         end
 
         # Se não clicou em canto, tenta selecionar um componente
-        # Usa mesma lógica que RenameSelectionTool (que funciona perfeitamente)
+        # Usa EXATAMENTE a mesma lógica que RenameSelectionTool (código idêntico)
         ph = view.pick_helper
         ph.do_pick(x, y)
 
@@ -64,17 +64,8 @@ module Rjv
           if path.is_a?(Sketchup::InstancePath)
             # Procura no path por componentes com identifier=MakettePro
             picked = find_makettepro_in_path(path)
-
-            # Se não encontrou MakettePro, procura qualquer componente no path
-            if picked.nil?
-              picked = find_any_component_in_path(path)
-            end
-
-            # Último fallback: pega o último elemento se for componente
-            if picked.nil?
-              last_element = path.to_a.last
-              picked = last_element if last_element.is_a?(Sketchup::ComponentInstance)
-            end
+            # Se não encontrou MakettePro, usa o último elemento
+            picked ||= path.to_a.last
           else
             # Fallback para best_picked
             picked = ph.best_picked
@@ -93,24 +84,15 @@ module Rjv
         view.invalidate
       end
 
-      # Encontra o primeiro componente MakettePro no path
+      # Encontra o primeiro componente MakettePro no path (do mais profundo para o mais raso)
       def find_makettepro_in_path(path)
-        path_array = path.to_a.reverse
+        path_array = path.to_a.reverse  # Começa do mais profundo
         path_array.each do |entity|
           next unless entity.is_a?(Sketchup::ComponentInstance)
           definition = entity.definition
           if definition.get_attribute("MakettePro", "identifier") == "MakettePro"
             return entity
           end
-        end
-        nil
-      end
-
-      # Procura qualquer componente no path (do mais profundo ao mais raso)
-      def find_any_component_in_path(path)
-        path_array = path.to_a.reverse
-        path_array.each do |entity|
-          return entity if entity.is_a?(Sketchup::ComponentInstance)
         end
         nil
       end

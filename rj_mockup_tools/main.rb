@@ -108,9 +108,15 @@ module Rjv
       },
       
       # Comandos com lazy loading:
-      'flip_ucs' => -> { 
+      'flip_ucs' => -> {
         ensure_loaded('FlipUCS')
-        Rjv::MockupTools::FlipUCS.run 
+        Rjv::MockupTools::FlipUCS.run
+      },
+      'flip_ucs_interactive' => -> {
+        ensure_loaded('FlipUCS')
+        model = Sketchup.active_model
+        tool = Rjv::MockupTools::FlipUCSInteractiveTool.new
+        model.select_tool(tool)
       },
       'rename_entities' => -> { 
         ensure_loaded('RenameEntities')

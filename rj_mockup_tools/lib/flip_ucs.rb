@@ -5,6 +5,252 @@ require 'sketchup.rb'
 
 module Rjv
   module MockupTools
+
+    # Ferramenta interativa para inverter eixos
+    class FlipUCSInteractiveTool
+      VK_ESCAPE = 27
+
+      def initialize
+        @current_instance = nil
+        @z_direction = nil  # :up ou :down
+      end
+
+      def activate
+        @model = Sketchup.active_model
+        @view = @model.active_view
+        Sketchup.status_text = "Inverter Eixos: Clique em um componente para inverter (ESC para sair)"
+        puts "Ferramenta Inverter Eixos ativada - clique em componentes"
+      end
+
+      def deactivate(view)
+        view.invalidate
+        @current_instance = nil
+        @z_direction = nil
+      end
+
+      def onLButtonDown(flags, x, y, view)
+        # Usa EXATAMENTE a mesma lógica que RenameSelectionTool
+        ph = view.pick_helper
+        ph.do_pick(x, y)
+
+        picked = nil
+        if ph.count > 0
+          # Tenta usar path para objetos aninhados
+          path = ph.path_at(0)
+          if path.is_a?(Sketchup::InstancePath)
+            # Procura no path por componentes com identifier=MakettePro
+            picked = find_makettepro_in_path(path)
+            # Se não encontrou MakettePro, usa o último elemento
+            picked ||= path.to_a.last
+          else
+            # Fallback para best_picked
+            picked = ph.best_picked
+          end
+        end
+
+        return unless picked
+        return unless picked.is_a?(Sketchup::ComponentInstance)
+
+        # Aplicar flip imediatamente
+        apply_flip_to_instance(picked)
+
+        Sketchup.status_text = "Eixos invertidos! Clique em outro componente ou ESC para sair"
+        view.invalidate
+      end
+
+      # Encontra o primeiro componente MakettePro no path
+      def find_makettepro_in_path(path)
+        path_array = path.to_a.reverse
+        path_array.each do |entity|
+          next unless entity.is_a?(Sketchup::ComponentInstance)
+          definition = entity.definition
+          if definition.get_attribute("MakettePro", "identifier") == "MakettePro"
+            return entity
+          end
+        end
+        nil
+      end
+
+      def apply_flip_to_instance(instance)
+        return unless instance && instance.valid?
+
+        model = Sketchup.active_model
+        definition = instance.definition
+
+        model.start_operation("Inverter Eixos - #{definition.name}", true)
+
+        begin
+          puts "Invertendo eixos para #{definition.name}"
+
+          # Detecta e remove carimbos
+          had_stamps = FlipUCS.has_stamps?(definition)
+          if had_stamps
+            FlipUCS.remove_stamps(definition)
+          end
+
+          # Aplica transformação de flip
+          entities_to_transform = definition.entities.to_a
+          definition.entities.transform_entities(FlipUCS::FLIP_YZ_TRANSFORMATION, entities_to_transform)
+
+          # Compensa nas instâncias
+          all_instances = definition.instances.to_a
+          all_instances.each do |inst|
+            next unless inst.valid?
+            old_tf = inst.transformation
+            new_tf = old_tf * FlipUCS::FLIP_YZ_TRANSFORMATION
+            inst.transformation = new_tf
+          end
+
+          # Reaplica carimbos
+          if had_stamps
+            FlipUCS.reapply_stamps(definition)
+          end
+
+          model.commit_operation
+          puts "✓ #{definition.name} processado - #{all_instances.length} instância(s)"
+
+        rescue => e
+          model.abort_operation
+          puts "Erro ao inverter eixos: #{e.message}"
+          puts e.backtrace.first(5)
+        end
+      end
+
+      def onMouseMove(flags, x, y, view)
+        # Detecta componente sob o mouse para mostrar preview
+        ph = view.pick_helper
+        ph.do_pick(x, y)
+
+        @current_instance = nil
+        if ph.count > 0
+          path = ph.path_at(0)
+          if path.is_a?(Sketchup::InstancePath)
+            picked = find_makettepro_in_path(path)
+            picked ||= path.to_a.last
+          else
+            picked = ph.best_picked
+          end
+
+          if picked && picked.is_a?(Sketchup::ComponentInstance)
+            @current_instance = picked
+            # Detecta direção do eixo Z
+            @z_direction = detect_z_direction(picked)
+          end
+        end
+
+        view.invalidate
+      end
+
+      def detect_z_direction(instance)
+        # Pega o eixo Z da transformação da instância
+        tf = instance.transformation
+        z_vector = tf.zaxis
+        # Se Z aponta mais para cima que para baixo, é :up
+        z_vector.z > 0 ? :up : :down
+      end
+
+      def draw(view)
+        return unless @current_instance && @current_instance.valid?
+
+        # Desenha bounding box
+        bounds = @current_instance.bounds
+        view.line_stipple = ""
+        view.line_width = 3
+        view.drawing_color = Sketchup::Color.new(66, 133, 244)  # Azul
+
+        # Desenha as 12 arestas do bounding box
+        (0..11).each do |edge_index|
+          p1 = get_bbox_edge_point(bounds, edge_index, 0)
+          p2 = get_bbox_edge_point(bounds, edge_index, 1)
+          view.draw(GL_LINES, p1, p2)
+        end
+
+        # Desenha seta do eixo Z
+        draw_z_axis_arrow(view)
+      end
+
+      def draw_z_axis_arrow(view)
+        return unless @current_instance
+
+        tf = @current_instance.transformation
+        center = @current_instance.bounds.center
+        z_vector = tf.zaxis
+
+        # Tamanho da seta
+        arrow_length = 100.0.mm
+        arrow_head_length = 20.0.mm
+        arrow_head_width = 10.0.mm
+
+        # Ponta da seta
+        arrow_end = center.offset(z_vector.transform(arrow_length))
+
+        # Cor baseada na direção
+        if @z_direction == :up
+          view.drawing_color = Sketchup::Color.new(0, 255, 0)  # Verde = Z para cima
+        else
+          view.drawing_color = Sketchup::Color.new(255, 0, 0)  # Vermelho = Z para baixo
+        end
+
+        view.line_width = 4
+
+        # Linha principal
+        view.draw(GL_LINES, center, arrow_end)
+
+        # Cabeça da seta (cone simplificado como linhas)
+        head_base = center.offset(z_vector.transform(arrow_length - arrow_head_length))
+        perpendicular = z_vector.axes[0]  # Pega vetor perpendicular
+
+        # 4 linhas formando a ponta
+        4.times do |i|
+          angle = (i / 4.0) * 2.0 * Math::PI
+          offset_x = Math.cos(angle) * arrow_head_width
+          offset_y = Math.sin(angle) * arrow_head_width
+          base_point = head_base.offset(
+            Geom::Vector3d.new(
+              perpendicular.x * offset_x,
+              perpendicular.y * offset_y,
+              0
+            )
+          )
+          view.draw(GL_LINES, base_point, arrow_end)
+        end
+      end
+
+      def get_bbox_edge_point(bounds, edge_index, point_index)
+        edges = [
+          [0, 1], [1, 2], [2, 3], [3, 0],  # Base inferior
+          [4, 5], [5, 6], [6, 7], [7, 4],  # Base superior
+          [0, 4], [1, 5], [2, 6], [3, 7]   # Arestas verticais
+        ]
+        corner_indices = edges[edge_index]
+        corner_index = corner_indices[point_index]
+        return bounds.corner(corner_index)
+      end
+
+      def onKeyDown(key, repeat, flags, view)
+        if key == VK_ESCAPE
+          puts "Ferramenta Inverter Eixos desativada"
+          @model.select_tool(nil)
+          return true
+        end
+        false
+      end
+
+      def onSetCursor
+        UI.set_cursor(0)
+      end
+
+      def getExtents
+        bb = Geom::BoundingBox.new
+        if @current_instance && @current_instance.valid?
+          bb.add(@current_instance.bounds)
+        else
+          bb = Sketchup.active_model.bounds
+        end
+        bb
+      end
+    end
+
     module FlipUCS
 
       # --- Constantes ---

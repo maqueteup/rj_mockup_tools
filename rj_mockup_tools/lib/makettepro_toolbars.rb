@@ -11,7 +11,7 @@ module Rjv
       TOOLBAR_CONFIG = {
         main: {
           name: "MakettePro",
-          tools: [:reset_ucs, :reset_ucs_interactive, :flip_ucs, :rename_entities, :rotate_x, :rotate_y, :rotate_z],
+          tools: [:reset_ucs, :reset_ucs_interactive, :flip_ucs, :flip_ucs_interactive, :rename_entities, :rotate_x, :rotate_y, :rotate_z],
           always_visible: true,
           priority: 1  # ✅ Cria primeiro
         },
@@ -50,6 +50,7 @@ module Rjv
         reset_ucs: "reset_ucs",
         reset_ucs_interactive: "reset_ucs_interactive",
         flip_ucs: "flip_ucs",
+        flip_ucs_interactive: "flip_ucs_interactive",
         rename_entities: "rename_entities",
         rotate_x: "rot_x",
         rotate_y: "rot_y",
@@ -208,6 +209,7 @@ module Rjv
             reset_ucs: "Resetar Eixos (UCS)",
             reset_ucs_interactive: "Resetar Eixos (Escolher Canto)",
             flip_ucs: "Inverter Eixo Z (UCS)",
+            flip_ucs_interactive: "Inverter Eixo Z (Interativo)",
             rename_entities: "Renomear Entidades",
             rotate_x: "Rotacionar Eixo X +90°",
             rotate_y: "Rotacionar Eixo Y +90°",

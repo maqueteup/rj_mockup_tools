@@ -31,6 +31,13 @@ module Rjv
           Rjv::MockupTools::FlipUCS.run
         }
 
+        model_submenu.add_item("Inverter Eixo Z (Interativo)") {
+          Rjv::MockupTools.ensure_loaded('FlipUCS')
+          model = Sketchup.active_model
+          tool = Rjv::MockupTools::FlipUCSInteractiveTool.new
+          model.select_tool(tool)
+        }
+
         model_submenu.add_item("Renomear Entidades...") {
           Rjv::MockupTools.ensure_loaded('RenameEntities')
           Rjv::MockupTools::RenameEntities.run
