@@ -6,33 +6,221 @@
     <title>Gerenciador de Cores</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f4f4f4; overflow: hidden; }
-        .container { padding: 15px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        h3 { margin: 0; color: #333; }
-        .header-actions { display: flex; align-items: center; gap: 8px; }
-        .material-count { font-size: 12px; color: #888; font-weight: 500; }
-        /* Botão de adicionar foi removido */
-        #search-box { width: calc(100% - 18px); padding: 8px; font-size: 14px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; }
-        #material-list-container { flex-grow: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; background-color: white; }
-        
-        /* Grid ajustado para não ter a coluna de deletar */
-        .material-item { display: grid; grid-template-columns: 1fr 40px 40px 25px; align-items: center; padding: 8px 10px; border-bottom: 1px solid #eee; }
-        .list-header { font-weight: 600; font-size: 11px; color: #888; text-transform: uppercase; background-color: #f9f9f9; text-align: center; }
-        
-        .material-name-input { font-size: 13px; border: none; background: transparent; width: 100%; padding: 4px; border-radius: 2px; }
-        .material-name-input:focus { outline: 1px solid #0078d4; background-color: #f0f8ff; }
-        .color-picker-wrapper { position: relative; width: 28px; height: 28px; justify-self: center; }
-        .color-swatch, input[type="color"] { width: 100%; height: 100%; border-radius: 4px; }
-        .color-swatch { border: 1px solid #ccc; }
-        input[type="color"] { position: absolute; top: 0; left: 0; opacity: 0; cursor: pointer; }
-        .paint-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 14px; padding: 0 5px; opacity: 0.7; justify-self: center; }
-        .paint-btn:hover { color: #0078d4; opacity: 1; }
-        /* Botão de deletar foi removido */
-        .footer { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .footer button { width: 100%; padding: 12px; font-size: 14px; cursor: pointer; border-radius: 5px; border: 1px solid #ccc; font-weight: 500; }
-        #toggle-colors-btn { background-color: #0078d4; color: white; border-color: #005a9e; }
-        #create-palette-btn { background-color: #f0f0f0; }
+        :root {
+            --bg-color: #f0f2f5;
+            --panel-bg: #ffffff;
+            --text-color: #3d4a5c;
+            --text-light-color: #8a96a8;
+            --border-color: #e9ecef;
+            --primary-color: #007bff;
+            --header-color: #2a3e54;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --orange: #FF8C00;
+            --success: #28a745;
+            --danger: #dc3545;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        .container {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--header-color);
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .material-count {
+            font-size: 13px;
+            color: var(--text-light-color);
+            font-weight: 600;
+        }
+
+        #search-box {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            background-color: white;
+        }
+
+        #search-box:focus {
+            outline: none;
+            border-color: var(--orange);
+            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+        }
+
+        #material-list-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background-color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .material-item {
+            display: grid;
+            grid-template-columns: 1fr 40px 40px 25px;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s ease;
+        }
+
+        .material-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .list-header {
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-light-color);
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #f8f9fa, #f0f2f5);
+            text-align: center;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .material-name-input {
+            font-size: 14px;
+            border: none;
+            background: transparent;
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            color: var(--text-color);
+        }
+
+        .material-name-input:focus {
+            outline: none;
+            background-color: #f0f8ff;
+            border: 1px solid var(--orange);
+        }
+
+        .color-picker-wrapper {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            justify-self: center;
+        }
+
+        .color-swatch,
+        input[type="color"] {
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+        }
+
+        .color-swatch {
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .color-swatch:hover {
+            border-color: var(--orange);
+        }
+
+        input[type="color"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .paint-btn {
+            background: none;
+            border: none;
+            color: var(--text-light-color);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 5px;
+            transition: all 0.2s ease;
+            justify-self: center;
+        }
+
+        .paint-btn:hover {
+            color: var(--orange);
+            transform: scale(1.1);
+        }
+
+        .footer {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .footer button {
+            width: 100%;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        #toggle-colors-btn {
+            background: linear-gradient(135deg, var(--orange), #e67e22);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+        }
+
+        #toggle-colors-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 140, 0, 0.4);
+        }
+
+        #create-palette-btn {
+            background: #f8f9fa;
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+        }
+
+        #create-palette-btn:hover {
+            background: var(--border-color);
+        }
     </style>
 </head>
 <body>
@@ -41,7 +229,6 @@
             <h3>Gerenciador de Cores</h3>
             <div class="header-actions">
                 <span id="material-count" class="material-count">0 materiais</span>
-                <!-- Botão de Adicionar foi removido daqui -->
             </div>
         </div>
         <input type="text" id="search-box" placeholder="Buscar material...">
@@ -50,7 +237,7 @@
                 <span>Material</span>
                 <span id="header-col-a">A</span>
                 <span id="header-col-b">B</span>
-                <span></span> <!-- Coluna para o botão de pintar -->
+                <span></span>
             </div>
             <div id="material-list"></div>
         </div>
@@ -67,13 +254,12 @@
             const listDiv = document.getElementById('material-list');
             listDiv.innerHTML = '';
             const filteredData = materialsData.filter(mat => mat.name.toLowerCase().includes(filter.toLowerCase()));
-            
+
             filteredData.forEach(mat => {
                 const item = document.createElement('div');
                 item.className = 'material-item';
                 const matName = mat.name;
-                
-                // Template de item sem o botão de deletar
+
                 item.innerHTML = `
                     <input type="text" class="material-name-input" value="${matName}" data-old-name="${matName}">
                     <div class="color-picker-wrapper" title="Editar Cor A">
@@ -92,7 +278,7 @@
             });
             addEventListeners();
         }
-        
+
         function addEventListeners() {
             document.querySelectorAll('input.color-editor').forEach(input => {
                 input.addEventListener('change', (event) => {
@@ -117,8 +303,6 @@
                 });
             });
         }
-        
-        // Função deleteMaterial removida
 
         function activatePaintTool(materialName) {
             if (typeof sketchup !== 'undefined') {
@@ -135,7 +319,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof sketchup !== 'undefined') sketchup.load_initial_data();
             document.getElementById('search-box').addEventListener('input', (e) => renderMaterialList(e.target.value));
-            // Event listener para add_new_material foi removido
             document.getElementById('toggle-colors-btn').addEventListener('click', () => { if (typeof sketchup !== 'undefined') sketchup.toggle_colors(); });
             document.getElementById('create-palette-btn').addEventListener('click', () => { if (typeof sketchup !== 'undefined') sketchup.create_palette(); });
         });
