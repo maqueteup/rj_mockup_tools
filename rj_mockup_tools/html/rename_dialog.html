@@ -5,206 +5,206 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Renomear Defs/Grupos</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+        :root {
+            --bg-color: #f0f2f5;
+            --panel-bg: #ffffff;
+            --text-color: #3d4a5c;
+            --text-light-color: #8a96a8;
+            --border-color: #e9ecef;
+            --primary-color: #007bff;
+            --header-color: #2a3e54;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --orange: #FF8C00;
+            --success: #28a745;
+            --danger: #dc3545;
         }
 
-        :root {
-            --primary-color: #2a7a8c;
-            --primary-light: #46bbd1;
-            --secondary-color: #e74c3c;
-            --accent-color: #f39c12;
-            --danger-color: #c0392b;
-            --text-color: #2c3e50;
-            --light-text: #7f8c8d;
-            --background: #ecf0f1;
-            --card-bg: #ffffff;
-            --border-radius: 6px;
-            --shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-            --hover-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-            --border-color: #bdc3c7;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            background-color: var(--background);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
             color: var(--text-color);
-            line-height: 1.3;
-            min-height: 100vh;
-            padding: 0.5rem;
-            font-size: 14px;
+            padding: 20px;
+            line-height: 1.5;
         }
 
         .container {
-            background-color: var(--card-bg);
-            border-radius: var(--border-radius);
+            background: var(--panel-bg);
+            border-radius: 12px;
             box-shadow: var(--shadow);
-            padding: 1rem;
-            max-width: 480px;
-            width: 100%;
+            padding: 25px;
+            max-width: 550px;
             margin: 0 auto;
         }
 
         h2 {
-            color: var(--secondary-color);
-            font-size: 1rem;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-            padding-bottom: 0.2rem;
-            border-bottom: 1px solid var(--border-color);
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--header-color);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .inline-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .info-text {
+            flex: 1;
+            padding: 10px 15px;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 14px;
+            font-weight: 500;
         }
 
         .form-group {
             margin-bottom: 18px;
         }
 
-        label {
+        .form-group label {
             display: block;
-            margin-bottom: 6px;
-            font-weight: bold;
+            font-size: 13px;
+            font-weight: 600;
             color: var(--text-color);
+            margin-bottom: 8px;
+            text-transform: uppercase;
         }
 
-        input[type="text"], input[type="number"], select {
+        .form-group input,
+        .form-group select {
             width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            box-sizing: border-box;
-            background-color: #f5f5f5;
-            color: var(--text-color);
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: white;
         }
 
-        .inline-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
         }
 
         .inline-group .form-group {
             flex: 1;
             margin-bottom: 0;
-            min-width: 140px;
-        }
-
-        .inline-group.three-col .form-group {
-            flex: 1;
         }
 
         .inline-group.three-col .form-group:first-child {
             flex: 1.5;
         }
 
-        .inline-group input, .inline-group select {
-            flex: 1;
-        }
-
         .checkbox-group {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
         .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--orange);
+        }
+
+        .checkbox-group label {
             margin: 0;
-            accent-color: var(--accent-color);
+            cursor: pointer;
+            font-size: 14px;
         }
 
         .panel {
-            border-radius: var(--border-radius);
-            padding: 16px;
+            background: linear-gradient(135deg, #f8f9fa, #f0f2f5);
+            border-radius: 12px;
+            padding: 20px;
             margin-bottom: 20px;
-            margin-top: 15px;
-            background-color: #f9f9f9;
+            border: 1px solid var(--border-color);
         }
 
         .panel-title {
-            margin-top: 0;
-            margin-bottom: 12px;
             font-size: 16px;
-            color: var(--primary-color);
+            font-weight: 700;
+            color: var(--header-color);
+            margin-bottom: 15px;
         }
 
         .button-group {
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-color);
         }
 
         button {
-            padding: 8px 16px;
+            padding: 12px 24px;
+            border-radius: 8px;
             border: none;
-            border-radius: var(--border-radius);
             cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
         }
 
         button.primary {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--orange), #e67e22);
             color: white;
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+        }
+
+        button.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 140, 0, 0.4);
         }
 
         button.secondary {
-            background-color: var(--secondary-color);
-            color: white;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--hover-shadow);
-        }
-
-        .info-text {
-            margin-top: 16px;
-            padding: 8px;
-            background-color: rgba(46, 204, 113, 0.1);
-            border-radius: var(--border-radius);
+            background: #f8f9fa;
             color: var(--text-color);
-            font-size: 0.75rem;
+            border: 2px solid var(--border-color);
         }
 
-        .section-separator {
-            border-top: 1px solid var(--border-color);
-            margin: 24px 0;
+        button.secondary:hover {
+            background: var(--border-color);
         }
-        
-        @media (max-width: 480px) {
+
+        @media (max-width: 600px) {
             body {
-                padding: 0.25rem;
-                font-size: 13px;
+                padding: 10px;
             }
-            
+
             .container {
-                padding: 0.75rem;
+                padding: 15px;
             }
-            
-            h2 {
-                font-size: 0.9rem;
-            }
-            
+
             .inline-group {
-                gap: 6px;
+                flex-direction: column;
+                align-items: stretch;
             }
-            
+
             .inline-group .form-group {
-                min-width: 100%;
+                width: 100%;
             }
-            
-            .panel {
-                padding: 12px;
-            }
-            
+
             .button-group {
                 flex-direction: column;
             }
-            
+
             button {
                 width: 100%;
             }
@@ -214,11 +214,11 @@
 <body>
     <div class="container">
         <h2>Renomear Defs/Grupos em Lote</h2>
-        <div class="inline-group" style="align-items: center; margin-bottom: 1rem;">
-            <div id="selection-info" class="info-text" style="flex: 1; margin-bottom: 0;">
+        <div class="inline-group" style="align-items: center;">
+            <div id="selection-info" class="info-text">
                 0 objetos selecionados
             </div>
-            <button id="btnSelect" class="primary" style="width: auto; padding: 8px 16px;">Selecionar</button>
+            <button id="btnSelect" class="primary" style="width: auto; padding: 10px 20px;">Selecionar</button>
         </div>
 
         <div class="form-group">
@@ -248,7 +248,6 @@
             </div>
         </div>
 
-        <!-- Prefixo e Sufixo lado a lado -->
         <div class="inline-group">
             <div class="form-group">
                 <label for="prefix">Prefixo:</label>
@@ -262,17 +261,16 @@
 
         <div class="panel">
             <h3 class="panel-title">Configurações de Sequência</h3>
-            <!-- Tipo de sequência, Valor Inicial e Incremento lado a lado -->
             <div class="inline-group three-col">
                 <div class="form-group">
-                    <label for="seqType">Tipo de Sequência:</label>
+                    <label for="seqType">Tipo:</label>
                     <select id="seqType">
                         <option value="N">Números (1, 2, 3, ...)</option>
                         <option value="A">Letras (A, B, C, ...)</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="startValue">Valor Inicial:</label>
+                    <label for="startValue">Inicial:</label>
                     <input type="text" id="startValue" value="1">
                 </div>
                 <div class="form-group">
@@ -303,9 +301,9 @@
             </select>
         </div>
 
-        <div class="checkbox-group" style="margin-top: 12px;">
+        <div class="checkbox-group">
             <input type="checkbox" id="applyStamp" checked>
-            <label for="applyStamp" style="margin: 0; font-weight: normal;">Carimbar (aplica carimbo se não existir)</label>
+            <label for="applyStamp">Carimbar (aplica carimbo se não existir)</label>
         </div>
 
         <div class="button-group">
@@ -315,66 +313,48 @@
     </div>
 
     <script>
-        // Estado global
         let selectionCount = 0;
         let requestInProgress = false;
-        
-        // Inicialização do dialog
+
         function initializeDialog(count, settings) {
             selectionCount = count;
             updateSelectionCount(count);
-
-            // Preencher campos com os valores salvos
             document.getElementById('prefix').value = settings.prefix || '';
             document.getElementById('suffix').value = settings.suffix || '';
             document.getElementById('seqType').value = settings.seqType || 'N';
             document.getElementById('startValue').value = settings.startValue || '1';
             document.getElementById('increment').value = settings.increment || 1;
-
-            // Modo de renomeação
             document.getElementById('nameMode').value = settings.nameMode || 'R';
             updateNameModePanel();
-
-            // Find/Replace
             document.getElementById('findText').value = settings.findText || '';
             document.getElementById('replaceText').value = settings.replaceText || '';
             document.getElementById('keepCase').checked = settings.keepCase !== false;
-
-            // Ordenação - atualiza o dropdown
-            const sortMethod = settings.sortMethod || 'SEL';
-            document.getElementById('sortMethodDropdown').value = sortMethod;
-
-            // Carimbar
+            document.getElementById('sortMethodDropdown').value = settings.sortMethod || 'SEL';
             document.getElementById('applyStamp').checked = settings.applyStamp !== false;
         }
-        
-        // Atualizar contagem de seleção
+
         function updateSelectionCount(count) {
             selectionCount = count;
             document.getElementById('selection-info').textContent =
                 `${count} objeto${count !== 1 ? 's' : ''} selecionado${count !== 1 ? 's' : ''}`;
         }
 
-        // Solicitar dados iniciais
         function request_initial_data() {
             if (!requestInProgress) {
                 requestInProgress = true;
                 sketchup.request_initial_data();
             }
         }
-        
-        // Alternar a visibilidade dos painéis
+
         function togglePanel(panelId, show) {
             document.getElementById(panelId).style.display = show ? 'block' : 'none';
         }
-        
-        // Atualizar painel de modo de renomeação
+
         function updateNameModePanel() {
             const nameMode = document.getElementById('nameMode').value;
             togglePanel('findReplacePanel', nameMode === 'F');
         }
-        
-        // Handler para salvar as configurações e fechar o diálogo
+
         function saveSettings() {
             const settings = {
                 prefix: document.getElementById('prefix').value,
@@ -389,16 +369,11 @@
                 sortMethod: document.getElementById('sortMethodDropdown').value,
                 applyStamp: document.getElementById('applyStamp').checked
             };
-
             sketchup.save_settings(settings);
         }
-        
-        // Configurar event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Event listeners para atualizar a interface com base nas seleções
-            document.getElementById('nameMode').addEventListener('change', updateNameModePanel);
 
-            // Botões
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('nameMode').addEventListener('change', updateNameModePanel);
             document.getElementById('btnSelect').addEventListener('click', function() {
                 sketchup.start_selection();
             });
@@ -406,13 +381,7 @@
             document.getElementById('btnCancel').addEventListener('click', function() {
                 sketchup.cancel();
             });
-            
-            // Sincronizar o dropdown de ordenação com os radio buttons ocultos
-            document.getElementById('sortMethodDropdown').addEventListener('change', function() {
-                const selectedValue = this.value;
-            });
-            
-            // Atualizar campos baseado no tipo de sequência
+
             document.getElementById('seqType').addEventListener('change', function() {
                 const startValueInput = document.getElementById('startValue');
                 if (this.value === 'A') {
@@ -422,8 +391,7 @@
                     startValueInput.value = parseInt(startValueInput.value) || 1;
                 }
             });
-            
-            // Validar entrada do valor inicial
+
             document.getElementById('startValue').addEventListener('change', function() {
                 const seqType = document.getElementById('seqType').value;
                 if (seqType === 'A') {
@@ -435,67 +403,5 @@
             });
         });
     </script>
-    
-    <!-- Hidden radio buttons for backward compatibility -->
-    <div style="display: none;">
-        <div class="sort-options">
-            <div class="sort-option">
-                <input type="radio" id="sortC" name="sortMethod" value="C" checked>
-                <label for="sortC">ID (padrão)</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortL" name="sortMethod" value="L">
-                <label for="sortL">Esquerda→Direita</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortR" name="sortMethod" value="R">
-                <label for="sortR">Direita→Esquerda</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortF" name="sortMethod" value="F">
-                <label for="sortF">Frente→Fundo</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortA" name="sortMethod" value="A">
-                <label for="sortA">Fundo→Frente</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortB" name="sortMethod" value="B">
-                <label for="sortB">Baixo→Cima</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortT" name="sortMethod" value="T">
-                <label for="sortT">Cima→Baixo</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortNEAR" name="sortMethod" value="NEAR">
-                <label for="sortNEAR">Distância (perto)</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortFAR" name="sortMethod" value="FAR">
-                <label for="sortFAR">Distância (longe)</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortNAME" name="sortMethod" value="NAME">
-                <label for="sortNAME">Nome (A-Z)</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortNAMEDESC" name="sortMethod" value="NAMEDESC">
-                <label for="sortNAMEDESC">Nome (Z-A)</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortSIZE" name="sortMethod" value="SIZE">
-                <label for="sortSIZE">Tamanho (menor)</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortSIZEDESC" name="sortMethod" value="SIZEDESC">
-                <label for="sortSIZEDESC">Tamanho (maior)</label>
-            </div>
-            <div class="sort-option">
-                <input type="radio" id="sortRANDOM" name="sortMethod" value="RANDOM">
-                <label for="sortRANDOM">Aleatório</label>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
