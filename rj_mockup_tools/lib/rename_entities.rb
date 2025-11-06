@@ -63,38 +63,29 @@ module Rjv
       end
 
       def draw(view)
-        # Desenha números sequenciais no centro XY local, no topo Z+ de cada peça
-        @selection.each_with_index do |entity, index|
+        return if @selection.empty?
+
+        view.line_stipple = ""
+        view.line_width = 8
+        view.drawing_color = Sketchup::Color.new(66, 133, 244)  # Azul como DeepPaintTool
+
+        @selection.each do |entity|
           next unless entity.valid?
+          draw_entity_edges(view, entity)
+        end
+      end
 
-          # Pega a transformação da entidade
-          transformation = entity.transformation
-
-          # Pega o bounds local (da definição/grupo)
-          if entity.is_a?(Sketchup::ComponentInstance)
-            local_bounds = entity.definition.bounds
-          else
-            local_bounds = entity.entities.bounds rescue entity.bounds
+      def draw_entity_edges(view, entity)
+        if entity.is_a?(Sketchup::Group)
+          entity.entities.grep(Sketchup::Edge).each do |edge|
+            view.draw(GL_LINES, edge.start.position.transform(entity.transformation),
+                                edge.end.position.transform(entity.transformation))
           end
-
-          # Centro do bounds local (XY do centro do bounds)
-          local_center = local_bounds.center
-
-          # Altura máxima Z local
-          local_top_z = local_bounds.max.z
-
-          # Ponto no centro XY do bounds local, no topo Z local
-          local_top_point = Geom::Point3d.new(local_center.x, local_center.y, local_top_z)
-
-          # Transforma para coordenadas globais
-          global_point = transformation * local_top_point
-
-          # Tamanho do texto proporcional à peça (baseado na diagonal)
-          diagonal = local_bounds.diagonal
-          text_size = [diagonal * 0.3, 24].max.to_i  # 30% da diagonal, mínimo 24
-
-          # Desenha o número grande em vermelho
-          view.draw_text(global_point, (index + 1).to_s, size: text_size, bold: true, color: 'red')
+        elsif entity.is_a?(Sketchup::ComponentInstance)
+          entity.definition.entities.grep(Sketchup::Edge).each do |edge|
+            view.draw(GL_LINES, edge.start.position.transform(entity.transformation),
+                                edge.end.position.transform(entity.transformation))
+          end
         end
       end
 

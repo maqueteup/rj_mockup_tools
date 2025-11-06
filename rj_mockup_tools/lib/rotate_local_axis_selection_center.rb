@@ -89,100 +89,30 @@ module Rjv
         end
 
         def draw(view)
-          # Desenha círculo vermelho no centro do último objeto clicado
           return if @last_clicked.empty?
 
-          # Detecta se Shift está pressionado
-          use_global = RotateLocalAxisSelectionCenter.shift_pressed?
+          view.line_stipple = ""
+          view.line_width = 8
+          view.drawing_color = @axis_color
 
           @last_clicked.each do |entity|
             next unless entity.valid?
-
-            # Pega transformação e bounds locais
-            transformation = entity.transformation
-            if entity.is_a?(Sketchup::ComponentInstance)
-              local_bounds = entity.definition.bounds
-            else
-              local_bounds = entity.entities.bounds rescue entity.bounds
-            end
-
-            # Centro e tamanho local
-            local_center = local_bounds.center
-            diagonal = local_bounds.diagonal
-            radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
-
-            # Desenha círculo vermelho no plano YZ (local ou global)
-            if use_global
-              draw_circle_x_global(view, entity, radius, @axis_color)
-            else
-              draw_circle_x_local(view, entity, local_center, radius, @axis_color)
-            end
+            draw_entity_edges(view, entity)
           end
         end
 
-        def draw_circle_x_local(view, entity, local_center, radius, color)
-          transformation = entity.transformation
-
-          # Círculo no plano YZ local (perpendicular ao eixo X local)
-          points = []
-          segments = 36
-          segments.times do |i|
-            angle = (i.to_f / segments) * Math::PI * 2
-            # Ponto local no plano YZ
-            local_offset = Geom::Vector3d.new(0, Math.cos(angle) * radius, Math.sin(angle) * radius)
-            local_point = local_center + local_offset
-            # Transforma para global
-            global_point = transformation * local_point
-            points << global_point
+        def draw_entity_edges(view, entity)
+          if entity.is_a?(Sketchup::Group)
+            entity.entities.grep(Sketchup::Edge).each do |edge|
+              view.draw(GL_LINES, edge.start.position.transform(entity.transformation),
+                                  edge.end.position.transform(entity.transformation))
+            end
+          elsif entity.is_a?(Sketchup::ComponentInstance)
+            entity.definition.entities.grep(Sketchup::Edge).each do |edge|
+              view.draw(GL_LINES, edge.start.position.transform(entity.transformation),
+                                  edge.end.position.transform(entity.transformation))
+            end
           end
-          points << points.first
-
-          view.line_width = 4
-          view.drawing_color = color
-          view.draw(GL_LINE_STRIP, points)
-
-          # Seta indicando rotação +90°
-          arrow_angle = Math::PI / 2
-          local_arrow_offset = Geom::Vector3d.new(0, Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius)
-          arrow_point = transformation * (local_center + local_arrow_offset)
-
-          # Vetores da seta em coordenadas locais, depois transformados
-          local_arrow_dir1 = Geom::Vector3d.new(0, -15, 10)
-          local_arrow_dir2 = Geom::Vector3d.new(15, 0, 10)
-          arrow_head1 = arrow_point + transformation.xaxis * local_arrow_dir1.x + transformation.yaxis * local_arrow_dir1.y + transformation.zaxis * local_arrow_dir1.z
-          arrow_head2 = arrow_point + transformation.xaxis * local_arrow_dir2.x + transformation.yaxis * local_arrow_dir2.y + transformation.zaxis * local_arrow_dir2.z
-
-          view.line_width = 3
-          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
-        end
-
-        def draw_circle_x_global(view, entity, radius, color)
-          # Centro global da entidade
-          bounds = entity.bounds
-          center = bounds.center
-
-          # Círculo no plano YZ GLOBAL (perpendicular ao eixo X global)
-          points = []
-          segments = 36
-          segments.times do |i|
-            angle = (i.to_f / segments) * Math::PI * 2
-            # Offset em coordenadas globais
-            offset = Geom::Vector3d.new(0, Math.cos(angle) * radius, Math.sin(angle) * radius)
-            points << center.offset(offset)
-          end
-          points << points.first
-
-          view.line_width = 4
-          view.drawing_color = color
-          view.draw(GL_LINE_STRIP, points)
-
-          # Seta indicando rotação +90°
-          arrow_angle = Math::PI / 2
-          arrow_point = center.offset(Geom::Vector3d.new(0, Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius))
-          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(0, -15, 10))
-          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(15, 0, 10))
-          view.line_width = 3
-          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end
 
         def onSetCursor
@@ -268,100 +198,30 @@ module Rjv
         end
 
         def draw(view)
-          # Desenha círculo verde no centro do último objeto clicado
           return if @last_clicked.empty?
 
-          # Detecta se Shift está pressionado
-          use_global = RotateLocalAxisSelectionCenter.shift_pressed?
+          view.line_stipple = ""
+          view.line_width = 8
+          view.drawing_color = @axis_color
 
           @last_clicked.each do |entity|
             next unless entity.valid?
-
-            # Pega transformação e bounds locais
-            transformation = entity.transformation
-            if entity.is_a?(Sketchup::ComponentInstance)
-              local_bounds = entity.definition.bounds
-            else
-              local_bounds = entity.entities.bounds rescue entity.bounds
-            end
-
-            # Centro e tamanho local
-            local_center = local_bounds.center
-            diagonal = local_bounds.diagonal
-            radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
-
-            # Desenha círculo verde no plano XZ (local ou global)
-            if use_global
-              draw_circle_y_global(view, entity, radius, @axis_color)
-            else
-              draw_circle_y_local(view, entity, local_center, radius, @axis_color)
-            end
+            draw_entity_edges(view, entity)
           end
         end
 
-        def draw_circle_y_local(view, entity, local_center, radius, color)
-          transformation = entity.transformation
-
-          # Círculo no plano XZ local (perpendicular ao eixo Y local)
-          points = []
-          segments = 36
-          segments.times do |i|
-            angle = (i.to_f / segments) * Math::PI * 2
-            # Ponto local no plano XZ
-            local_offset = Geom::Vector3d.new(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
-            local_point = local_center + local_offset
-            # Transforma para global
-            global_point = transformation * local_point
-            points << global_point
+        def draw_entity_edges(view, entity)
+          if entity.is_a?(Sketchup::Group)
+            entity.entities.grep(Sketchup::Edge).each do |edge|
+              view.draw(GL_LINES, edge.start.position.transform(entity.transformation),
+                                  edge.end.position.transform(entity.transformation))
+            end
+          elsif entity.is_a?(Sketchup::ComponentInstance)
+            entity.definition.entities.grep(Sketchup::Edge).each do |edge|
+              view.draw(GL_LINES, edge.start.position.transform(entity.transformation),
+                                  edge.end.position.transform(entity.transformation))
+            end
           end
-          points << points.first
-
-          view.line_width = 4
-          view.drawing_color = color
-          view.draw(GL_LINE_STRIP, points)
-
-          # Seta indicando rotação +90°
-          arrow_angle = Math::PI / 2
-          local_arrow_offset = Geom::Vector3d.new(Math.cos(arrow_angle) * radius, 0, Math.sin(arrow_angle) * radius)
-          arrow_point = transformation * (local_center + local_arrow_offset)
-
-          # Vetores da seta em coordenadas locais, depois transformados
-          local_arrow_dir1 = Geom::Vector3d.new(-15, 0, 10)
-          local_arrow_dir2 = Geom::Vector3d.new(0, 15, 10)
-          arrow_head1 = arrow_point + transformation.xaxis * local_arrow_dir1.x + transformation.yaxis * local_arrow_dir1.y + transformation.zaxis * local_arrow_dir1.z
-          arrow_head2 = arrow_point + transformation.xaxis * local_arrow_dir2.x + transformation.yaxis * local_arrow_dir2.y + transformation.zaxis * local_arrow_dir2.z
-
-          view.line_width = 3
-          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
-        end
-
-        def draw_circle_y_global(view, entity, radius, color)
-          # Centro global da entidade
-          bounds = entity.bounds
-          center = bounds.center
-
-          # Círculo no plano XZ GLOBAL (perpendicular ao eixo Y global)
-          points = []
-          segments = 36
-          segments.times do |i|
-            angle = (i.to_f / segments) * Math::PI * 2
-            # Offset em coordenadas globais
-            offset = Geom::Vector3d.new(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
-            points << center.offset(offset)
-          end
-          points << points.first
-
-          view.line_width = 4
-          view.drawing_color = color
-          view.draw(GL_LINE_STRIP, points)
-
-          # Seta indicando rotação +90°
-          arrow_angle = Math::PI / 2
-          arrow_point = center.offset(Geom::Vector3d.new(Math.cos(arrow_angle) * radius, 0, Math.sin(arrow_angle) * radius))
-          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(-15, 0, 10))
-          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(0, 15, 10))
-          view.line_width = 3
-          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end
 
         def onSetCursor
@@ -447,100 +307,30 @@ module Rjv
         end
 
         def draw(view)
-          # Desenha círculo azul no centro do último objeto clicado
           return if @last_clicked.empty?
 
-          # Detecta se Shift está pressionado
-          use_global = RotateLocalAxisSelectionCenter.shift_pressed?
+          view.line_stipple = ""
+          view.line_width = 8
+          view.drawing_color = @axis_color
 
           @last_clicked.each do |entity|
             next unless entity.valid?
-
-            # Pega transformação e bounds locais
-            transformation = entity.transformation
-            if entity.is_a?(Sketchup::ComponentInstance)
-              local_bounds = entity.definition.bounds
-            else
-              local_bounds = entity.entities.bounds rescue entity.bounds
-            end
-
-            # Centro e tamanho local
-            local_center = local_bounds.center
-            diagonal = local_bounds.diagonal
-            radius = [diagonal * 0.4, 30].max  # 40% da diagonal, mínimo 30
-
-            # Desenha círculo azul no plano XY (local ou global)
-            if use_global
-              draw_circle_z_global(view, entity, radius, @axis_color)
-            else
-              draw_circle_z_local(view, entity, local_center, radius, @axis_color)
-            end
+            draw_entity_edges(view, entity)
           end
         end
 
-        def draw_circle_z_local(view, entity, local_center, radius, color)
-          transformation = entity.transformation
-
-          # Círculo no plano XY local (perpendicular ao eixo Z local)
-          points = []
-          segments = 36
-          segments.times do |i|
-            angle = (i.to_f / segments) * Math::PI * 2
-            # Ponto local no plano XY
-            local_offset = Geom::Vector3d.new(Math.cos(angle) * radius, Math.sin(angle) * radius, 0)
-            local_point = local_center + local_offset
-            # Transforma para global
-            global_point = transformation * local_point
-            points << global_point
+        def draw_entity_edges(view, entity)
+          if entity.is_a?(Sketchup::Group)
+            entity.entities.grep(Sketchup::Edge).each do |edge|
+              view.draw(GL_LINES, edge.start.position.transform(entity.transformation),
+                                  edge.end.position.transform(entity.transformation))
+            end
+          elsif entity.is_a?(Sketchup::ComponentInstance)
+            entity.definition.entities.grep(Sketchup::Edge).each do |edge|
+              view.draw(GL_LINES, edge.start.position.transform(entity.transformation),
+                                  edge.end.position.transform(entity.transformation))
+            end
           end
-          points << points.first
-
-          view.line_width = 4
-          view.drawing_color = color
-          view.draw(GL_LINE_STRIP, points)
-
-          # Seta indicando rotação +90°
-          arrow_angle = 0  # Posição à direita do círculo
-          local_arrow_offset = Geom::Vector3d.new(Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius, 0)
-          arrow_point = transformation * (local_center + local_arrow_offset)
-
-          # Vetores da seta em coordenadas locais, depois transformados
-          local_arrow_dir1 = Geom::Vector3d.new(10, -15, 0)
-          local_arrow_dir2 = Geom::Vector3d.new(10, 0, 15)
-          arrow_head1 = arrow_point + transformation.xaxis * local_arrow_dir1.x + transformation.yaxis * local_arrow_dir1.y + transformation.zaxis * local_arrow_dir1.z
-          arrow_head2 = arrow_point + transformation.xaxis * local_arrow_dir2.x + transformation.yaxis * local_arrow_dir2.y + transformation.zaxis * local_arrow_dir2.z
-
-          view.line_width = 3
-          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
-        end
-
-        def draw_circle_z_global(view, entity, radius, color)
-          # Centro global da entidade
-          bounds = entity.bounds
-          center = bounds.center
-
-          # Círculo no plano XY GLOBAL (perpendicular ao eixo Z global)
-          points = []
-          segments = 36
-          segments.times do |i|
-            angle = (i.to_f / segments) * Math::PI * 2
-            # Offset em coordenadas globais
-            offset = Geom::Vector3d.new(Math.cos(angle) * radius, Math.sin(angle) * radius, 0)
-            points << center.offset(offset)
-          end
-          points << points.first
-
-          view.line_width = 4
-          view.drawing_color = color
-          view.draw(GL_LINE_STRIP, points)
-
-          # Seta indicando rotação +90°
-          arrow_angle = 0
-          arrow_point = center.offset(Geom::Vector3d.new(Math.cos(arrow_angle) * radius, Math.sin(arrow_angle) * radius, 0))
-          arrow_head1 = arrow_point.offset(Geom::Vector3d.new(10, -15, 0))
-          arrow_head2 = arrow_point.offset(Geom::Vector3d.new(10, 0, 15))
-          view.line_width = 3
-          view.draw(GL_LINES, [arrow_point, arrow_head1, arrow_point, arrow_head2])
         end
 
         def onSetCursor
@@ -574,7 +364,7 @@ module Rjv
       end
 
       # --- Detectar se Shift está pressionado ---
-      private_class_method def self.shift_pressed?
+      def self.shift_pressed?
         begin
           # Tenta detectar o estado do Shift via Win32API (Windows)
           if Sketchup.platform == :platform_win
