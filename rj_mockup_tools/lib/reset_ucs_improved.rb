@@ -53,37 +53,22 @@ module Rjv
         end
 
         # Se não clicou em canto, tenta selecionar um componente
+        # Usa mesma lógica que RenameSelectionTool (que funciona perfeitamente)
         ph = view.pick_helper
         ph.do_pick(x, y)
 
         picked = nil
         if ph.count > 0
-          # Explora todos os itens do pick para encontrar componentes aninhados
-          # Começa do índice 0 (mais profundo) até count-1 (mais superficial)
-          (0...ph.count).each do |pick_index|
-            path = ph.path_at(pick_index)
-
-            if path.is_a?(Sketchup::InstancePath)
-              # Busca MakettePro no path, do mais profundo ao mais raso
-              picked = find_makettepro_in_path(path)
-              if picked
-                break
-              end
-
-              # Se não encontrou MakettePro, tenta o último elemento se for componente
-              leaf = path.to_a.last
-              if leaf.is_a?(Sketchup::ComponentInstance)
-                picked = leaf
-                break
-              end
-            else
-              # Não é path, usa o indexador [] do pick_helper
-              entity = ph[pick_index]
-              if entity && entity.is_a?(Sketchup::ComponentInstance)
-                picked = entity
-                break
-              end
-            end
+          # Tenta usar path para objetos aninhados
+          path = ph.path_at(0)
+          if path.is_a?(Sketchup::InstancePath)
+            # Procura no path por componentes com identifier=MakettePro
+            picked = find_makettepro_in_path(path)
+            # Se não encontrou MakettePro, usa o último elemento
+            picked ||= path.to_a.last
+          else
+            # Fallback para best_picked
+            picked = ph.best_picked
           end
         end
 
