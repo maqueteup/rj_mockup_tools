@@ -77,9 +77,9 @@ module Rjv
                 break
               end
             else
-              # Não é path, verifica se é componente diretamente
-              entity = ph.picked_element_at(pick_index)
-              if entity.is_a?(Sketchup::ComponentInstance)
+              # Não é path, usa o indexador [] do pick_helper
+              entity = ph[pick_index]
+              if entity && entity.is_a?(Sketchup::ComponentInstance)
                 picked = entity
                 break
               end
