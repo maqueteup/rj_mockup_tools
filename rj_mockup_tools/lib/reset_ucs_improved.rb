@@ -53,27 +53,16 @@ module Rjv
         end
 
         # Se não clicou em canto, tenta selecionar um componente
-        # Usa EXATAMENTE a mesma lógica que RenameSelectionTool (código idêntico)
+        # Busca PROFUNDA por componentes MakettePro (itera TODOS os paths)
         ph = view.pick_helper
         ph.do_pick(x, y)
 
-        picked = nil
-        if ph.count > 0
-          # Tenta usar path para objetos aninhados
-          path = ph.path_at(0)
-          if path.is_a?(Sketchup::InstancePath)
-            # Procura no path por componentes com identifier=MakettePro
-            picked = find_makettepro_in_path(path)
-            # Se não encontrou MakettePro, usa o último elemento
-            picked ||= path.to_a.last
-          else
-            # Fallback para best_picked
-            picked = ph.best_picked
-          end
-        end
+        picked = find_deep_makettepro(ph)
 
+        # REJEITA se não for MakettePro
         return unless picked
         return unless picked.is_a?(Sketchup::ComponentInstance)
+        return unless is_makettepro?(picked)
 
         # Componente selecionado
         @current_instance = picked
@@ -84,17 +73,43 @@ module Rjv
         view.invalidate
       end
 
+      # Busca PROFUNDA por MakettePro - itera TODOS os paths do pick_helper
+      def find_deep_makettepro(ph)
+        return nil if ph.count == 0
+
+        # Itera por TODOS os elementos (não apenas o primeiro)
+        (0...ph.count).each do |pick_index|
+          path = ph.path_at(pick_index)
+
+          if path.is_a?(Sketchup::InstancePath)
+            # Busca MakettePro no path (do mais profundo ao mais raso)
+            makettepro = find_makettepro_in_path(path)
+            return makettepro if makettepro
+          end
+        end
+
+        # Fallback: verifica best_picked
+        best = ph.best_picked
+        return best if best && is_makettepro?(best)
+
+        nil
+      end
+
       # Encontra o primeiro componente MakettePro no path (do mais profundo para o mais raso)
       def find_makettepro_in_path(path)
         path_array = path.to_a.reverse  # Começa do mais profundo
         path_array.each do |entity|
           next unless entity.is_a?(Sketchup::ComponentInstance)
-          definition = entity.definition
-          if definition.get_attribute("MakettePro", "identifier") == "MakettePro"
-            return entity
-          end
+          return entity if is_makettepro?(entity)
         end
         nil
+      end
+
+      # Verifica se é componente MakettePro
+      def is_makettepro?(entity)
+        return false unless entity.is_a?(Sketchup::ComponentInstance)
+        definition = entity.definition
+        definition.get_attribute("MakettePro", "identifier") == "MakettePro"
       end
 
       def prepare_corner_data_for_instance(instance)

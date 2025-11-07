@@ -29,27 +29,16 @@ module Rjv
       end
 
       def onLButtonDown(flags, x, y, view)
-        # Usa EXATAMENTE a mesma lógica que RenameSelectionTool
+        # Busca PROFUNDA por componentes MakettePro (itera TODOS os paths)
         ph = view.pick_helper
         ph.do_pick(x, y)
 
-        picked = nil
-        if ph.count > 0
-          # Tenta usar path para objetos aninhados
-          path = ph.path_at(0)
-          if path.is_a?(Sketchup::InstancePath)
-            # Procura no path por componentes com identifier=MakettePro
-            picked = find_makettepro_in_path(path)
-            # Se não encontrou MakettePro, usa o último elemento
-            picked ||= path.to_a.last
-          else
-            # Fallback para best_picked
-            picked = ph.best_picked
-          end
-        end
+        picked = find_deep_makettepro(ph)
 
+        # REJEITA se não for MakettePro
         return unless picked
         return unless picked.is_a?(Sketchup::ComponentInstance)
+        return unless is_makettepro?(picked)
 
         # Aplicar flip imediatamente
         apply_flip_to_instance(picked)
@@ -58,17 +47,43 @@ module Rjv
         view.invalidate
       end
 
-      # Encontra o primeiro componente MakettePro no path
-      def find_makettepro_in_path(path)
-        path_array = path.to_a.reverse
-        path_array.each do |entity|
-          next unless entity.is_a?(Sketchup::ComponentInstance)
-          definition = entity.definition
-          if definition.get_attribute("MakettePro", "identifier") == "MakettePro"
-            return entity
+      # Busca PROFUNDA por MakettePro - itera TODOS os paths do pick_helper
+      def find_deep_makettepro(ph)
+        return nil if ph.count == 0
+
+        # Itera por TODOS os elementos (não apenas o primeiro)
+        (0...ph.count).each do |pick_index|
+          path = ph.path_at(pick_index)
+
+          if path.is_a?(Sketchup::InstancePath)
+            # Busca MakettePro no path (do mais profundo ao mais raso)
+            makettepro = find_makettepro_in_path(path)
+            return makettepro if makettepro
           end
         end
+
+        # Fallback: verifica best_picked
+        best = ph.best_picked
+        return best if best && is_makettepro?(best)
+
         nil
+      end
+
+      # Encontra o primeiro componente MakettePro no path (do mais profundo para o mais raso)
+      def find_makettepro_in_path(path)
+        path_array = path.to_a.reverse  # Começa do mais profundo
+        path_array.each do |entity|
+          next unless entity.is_a?(Sketchup::ComponentInstance)
+          return entity if is_makettepro?(entity)
+        end
+        nil
+      end
+
+      # Verifica se é componente MakettePro
+      def is_makettepro?(entity)
+        return false unless entity.is_a?(Sketchup::ComponentInstance)
+        definition = entity.definition
+        definition.get_attribute("MakettePro", "identifier") == "MakettePro"
       end
 
       def apply_flip_to_instance(instance)
@@ -117,25 +132,17 @@ module Rjv
       end
 
       def onMouseMove(flags, x, y, view)
-        # Detecta componente sob o mouse para mostrar preview
+        # Detecta componente MakettePro sob o mouse
         ph = view.pick_helper
         ph.do_pick(x, y)
 
-        @current_instance = nil
-        if ph.count > 0
-          path = ph.path_at(0)
-          if path.is_a?(Sketchup::InstancePath)
-            picked = find_makettepro_in_path(path)
-            picked ||= path.to_a.last
-          else
-            picked = ph.best_picked
-          end
+        picked = find_deep_makettepro(ph)
 
-          if picked && picked.is_a?(Sketchup::ComponentInstance)
-            @current_instance = picked
-            # Detecta direção do eixo Z
-            @z_direction = detect_z_direction(picked)
-          end
+        @current_instance = nil
+        if picked && is_makettepro?(picked)
+          @current_instance = picked
+          # Detecta direção do eixo Z LOCAL
+          @z_direction = detect_z_direction(picked)
         end
 
         view.invalidate
@@ -174,6 +181,7 @@ module Rjv
 
         tf = @current_instance.transformation
         center = @current_instance.bounds.center
+        # Eixo Z LOCAL da peça (transformado)
         z_vector = tf.zaxis
 
         # Tamanho da seta
@@ -181,8 +189,8 @@ module Rjv
         arrow_head_length = 20.0.mm
         arrow_head_width = 10.0.mm
 
-        # Ponta da seta
-        arrow_end = center.offset(z_vector.transform(arrow_length))
+        # Ponta da seta (usa multiplicação de vetor corretamente)
+        arrow_end = center.offset(z_vector * arrow_length)
 
         # Cor baseada na direção
         if @z_direction == :up
@@ -197,7 +205,7 @@ module Rjv
         view.draw(GL_LINES, center, arrow_end)
 
         # Cabeça da seta (cone simplificado como linhas)
-        head_base = center.offset(z_vector.transform(arrow_length - arrow_head_length))
+        head_base = center.offset(z_vector * (arrow_length - arrow_head_length))
         perpendicular = z_vector.axes[0]  # Pega vetor perpendicular
 
         # 4 linhas formando a ponta
